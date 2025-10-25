@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Catálogo de Nós{% endblock %}
+
+{% block content %}
+<section class="page page--nodes">
+  <header class="page__header">
+    <div>
+      <h1 class="page__title">Catálogo de Nós</h1>
+      <p class="page__subtitle">Pesquise por órgãos, fornecedores ou empenhos presentes no grafo.</p>
+    </div>
+    <div class="actions actions--wide">
+      <input id="node-search" class="input" type="search" placeholder="Filtrar por nome ou ID…" />
+      <select id="node-type-filter" class="select">
+        <option value="all" selected>Todos</option>
+        <option value="orgao">Órgãos</option>
+        <option value="empenho">Empenhos</option>
+        <option value="fornecedor">Fornecedores</option>
+        <option value="contrato">Contratos</option>
+      </select>
+    </div>
+  </header>
+  <div class="panel panel--stretch">
+    <div class="panel__body">
+      <div id="node-status" class="panel__status">Carregando nós…</div>
+      <table id="node-table" class="table" hidden>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Tipo</th>
+            <th>Valor empenhado</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('frontend.static', filename='js/nodes.js') }}"></script>
+{% endblock %}

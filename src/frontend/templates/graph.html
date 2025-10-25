@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Explorador do Grafo{% endblock %}
+
+{% block content %}
+<section class="page page--graph">
+  <header class="page__header">
+    <div>
+      <h1 class="page__title">Explorador do Grafo</h1>
+      <p class="page__subtitle">Visualize relações entre órgãos, empenhos e fornecedores em tempo real.</p>
+    </div>
+    <div class="actions">
+      <button id="fit-graph" class="button button--secondary" type="button">Ajustar Visão</button>
+      <select id="type-filter" class="select">
+        <option value="all" selected>Todos os tipos</option>
+        <option value="orgao">Órgãos</option>
+        <option value="empenho">Empenhos</option>
+        <option value="fornecedor">Fornecedores</option>
+        <option value="contrato">Contratos</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="graph-layout">
+    <div class="graph-canvas" id="graph-canvas">
+      <div class="graph-status" id="graph-status">Carregando dados do grafo…</div>
+    </div>
+    <aside class="graph-sidebar" id="graph-sidebar">
+      <h2 class="sidebar__title">Detalhes</h2>
+      <div id="sidebar-content" class="sidebar__content">
+        <p>Selecione um nó para ver detalhes e conexões.</p>
+      </div>
+      <div class="legend">
+        <h3 class="legend__title">Legenda</h3>
+        <ul class="legend__list">
+          <li><span class="legend__swatch legend__swatch--orgao"></span>Órgão</li>
+          <li><span class="legend__swatch legend__swatch--empenho"></span>Empenho</li>
+          <li><span class="legend__swatch legend__swatch--fornecedor"></span>Fornecedor</li>
+          <li><span class="legend__swatch legend__swatch--contrato"></span>Contrato</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js" defer></script>
+<script src="{{ url_for('frontend.static', filename='js/graph.js') }}" defer></script>
+{% endblock %}

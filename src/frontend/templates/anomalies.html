@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Anomalias Detectadas{% endblock %}
+
+{% block content %}
+<section class="page">
+  <header class="page__header">
+    <div>
+      <h1 class="page__title">Anomalias Detectadas</h1>
+      <p class="page__subtitle">Resultados do pipeline de heurísticas aplicado ao grafo atual.</p>
+    </div>
+    <div class="actions">
+      <button id="refresh-anomalies" class="button" type="button">Atualizar</button>
+    </div>
+  </header>
+  <div class="panel" id="anomalies-panel">
+    <div class="panel__body">
+      <div id="anomaly-status" class="panel__status">Carregando anomalias…</div>
+      <div id="anomaly-content" class="anomaly-list" hidden></div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('frontend.static', filename='js/anomalies.js') }}"></script>
+{% endblock %}

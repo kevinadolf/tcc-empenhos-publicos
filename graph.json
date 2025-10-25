@@ -1,0 +1,115 @@
+{
+  "directed": true,
+  "multigraph": true,
+  "graph": {},
+  "nodes": [
+    {
+      "original_id": "empenho::E100",
+      "type": "empenho",
+      "numero": "2023-100",
+      "descricao": "Contratação de serviços de TI",
+      "valor": 180000.0,
+      "data": "2023-04-10",
+      "id": "empenho::E100"
+    },
+    {
+      "original_id": "orgao::O100",
+      "type": "orgao",
+      "nome": "Secretaria de Planejamento",
+      "sigla": "SEPLAN",
+      "municipio": "Rio de Janeiro",
+      "uf": "RJ",
+      "id": "orgao::O100"
+    },
+    {
+      "original_id": "fornecedor::F100",
+      "type": "fornecedor",
+      "nome": "GigaTech Solutions",
+      "documento": "11.111.111/0001-11",
+      "tipo_documento": "CNPJ",
+      "municipio": "Rio de Janeiro",
+      "uf": "RJ",
+      "id": "fornecedor::F100"
+    },
+    {
+      "original_id": "contrato::C100",
+      "type": "contrato",
+      "id": "contrato::C100"
+    },
+    {
+      "original_id": "empenho::E101",
+      "type": "empenho",
+      "numero": "2023-101",
+      "descricao": "Compra de materiais médicos",
+      "valor": 95000.0,
+      "data": "2023-05-05",
+      "id": "empenho::E101"
+    },
+    {
+      "original_id": "orgao::O101",
+      "type": "orgao",
+      "nome": "Secretaria de Saúde",
+      "sigla": "SESAU",
+      "municipio": "Rio de Janeiro",
+      "uf": "RJ",
+      "id": "orgao::O101"
+    },
+    {
+      "original_id": "fornecedor::F101",
+      "type": "fornecedor",
+      "nome": "SaudeMais Distribuidora",
+      "documento": "22.222.222/0001-22",
+      "tipo_documento": "CNPJ",
+      "municipio": "Niterói",
+      "uf": "RJ",
+      "id": "fornecedor::F101"
+    },
+    {
+      "original_id": "contrato::C101",
+      "type": "contrato",
+      "id": "contrato::C101"
+    }
+  ],
+  "links": [
+    {
+      "tipo": "empenho_fornecedor",
+      "valor": 180000.0,
+      "source": "empenho::E100",
+      "target": "fornecedor::F100",
+      "key": "empenho_fornecedor"
+    },
+    {
+      "tipo": "empenho_contrato",
+      "source": "empenho::E100",
+      "target": "contrato::C100",
+      "key": "empenho_contrato"
+    },
+    {
+      "tipo": "orgao_empenho",
+      "valor": 180000.0,
+      "source": "orgao::O100",
+      "target": "empenho::E100",
+      "key": "orgao_empenho"
+    },
+    {
+      "tipo": "empenho_fornecedor",
+      "valor": 95000.0,
+      "source": "empenho::E101",
+      "target": "fornecedor::F101",
+      "key": "empenho_fornecedor"
+    },
+    {
+      "tipo": "empenho_contrato",
+      "source": "empenho::E101",
+      "target": "contrato::C101",
+      "key": "empenho_contrato"
+    },
+    {
+      "tipo": "orgao_empenho",
+      "valor": 95000.0,
+      "source": "orgao::O101",
+      "target": "empenho::E101",
+      "key": "orgao_empenho"
+    }
+  ]
+}

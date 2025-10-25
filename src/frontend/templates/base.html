@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Explorador de Grafos{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/styles.css') }}" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar__brand">
+        <span class="brand__title">Empenhos RJ</span>
+        <span class="brand__subtitle">Detecção de Anomalias</span>
+      </div>
+      <nav class="topbar__nav">
+        <a class="nav__link {{ 'is-active' if request.path == url_for('frontend.graph_explorer') else '' }}" href="{{ url_for('frontend.graph_explorer') }}">Grafo</a>
+        <a class="nav__link {{ 'is-active' if request.path == url_for('frontend.anomalies_view') else '' }}" href="{{ url_for('frontend.anomalies_view') }}">Anomalias</a>
+        <a class="nav__link {{ 'is-active' if request.path == url_for('frontend.nodes_view') else '' }}" href="{{ url_for('frontend.nodes_view') }}">Nós</a>
+        <a class="nav__link" href="{{ url_for('api.graph_summary') }}">API</a>
+      </nav>
+    </header>
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

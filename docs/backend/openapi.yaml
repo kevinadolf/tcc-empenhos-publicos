@@ -1,0 +1,65 @@
+openapi: 3.0.3
+info:
+  title: API de Detecção de Anomalias
+  version: 0.1.0
+  description: |
+    API RESTful que expõe métricas e anomalias detectadas no grafo de empenhos do TCE-RJ.
+servers:
+  - url: http://localhost:8000/api
+paths:
+  /health:
+    get:
+      summary: Verifica a disponibilidade da API
+      responses:
+        '200':
+          description: Status da aplicação
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /graph/summary:
+    get:
+      summary: Retorna estatísticas básicas do grafo carregado
+      responses:
+        '200':
+          description: Resumo do grafo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nodes:
+                    type: integer
+                  edges:
+                    type: integer
+                  empenhos:
+                    type: integer
+                  fornecedores:
+                    type: integer
+                  orgaos:
+                    type: integer
+  /anomalies:
+    get:
+      summary: Lista anomalias detectadas nas análises padrões
+      responses:
+        '200':
+          description: Resultado das heurísticas de anomalia
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      score:
+                        type: number
+                      reason:
+                        type: string
+                      context:
+                        type: object

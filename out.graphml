@@ -1,0 +1,99 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d13" for="edge" attr.name="valor" attr.type="double" />
+  <key id="d12" for="edge" attr.name="tipo" attr.type="string" />
+  <key id="d11" for="node" attr.name="tipo_documento" attr.type="string" />
+  <key id="d10" for="node" attr.name="documento" attr.type="string" />
+  <key id="d9" for="node" attr.name="uf" attr.type="string" />
+  <key id="d8" for="node" attr.name="municipio" attr.type="string" />
+  <key id="d7" for="node" attr.name="sigla" attr.type="string" />
+  <key id="d6" for="node" attr.name="nome" attr.type="string" />
+  <key id="d5" for="node" attr.name="data" attr.type="string" />
+  <key id="d4" for="node" attr.name="valor" attr.type="double" />
+  <key id="d3" for="node" attr.name="descricao" attr.type="string" />
+  <key id="d2" for="node" attr.name="numero" attr.type="string" />
+  <key id="d1" for="node" attr.name="type" attr.type="string" />
+  <key id="d0" for="node" attr.name="original_id" attr.type="string" />
+  <graph edgedefault="directed">
+    <node id="empenho::E100">
+      <data key="d0">empenho::E100</data>
+      <data key="d1">empenho</data>
+      <data key="d2">2023-100</data>
+      <data key="d3">Contratação de serviços de TI</data>
+      <data key="d4">180000.0</data>
+      <data key="d5">2023-04-10</data>
+    </node>
+    <node id="orgao::O100">
+      <data key="d0">orgao::O100</data>
+      <data key="d1">orgao</data>
+      <data key="d6">Secretaria de Planejamento</data>
+      <data key="d7">SEPLAN</data>
+      <data key="d8">Rio de Janeiro</data>
+      <data key="d9">RJ</data>
+    </node>
+    <node id="fornecedor::F100">
+      <data key="d0">fornecedor::F100</data>
+      <data key="d1">fornecedor</data>
+      <data key="d6">GigaTech Solutions</data>
+      <data key="d10">11.111.111/0001-11</data>
+      <data key="d11">CNPJ</data>
+      <data key="d8">Rio de Janeiro</data>
+      <data key="d9">RJ</data>
+    </node>
+    <node id="contrato::C100">
+      <data key="d0">contrato::C100</data>
+      <data key="d1">contrato</data>
+    </node>
+    <node id="empenho::E101">
+      <data key="d0">empenho::E101</data>
+      <data key="d1">empenho</data>
+      <data key="d2">2023-101</data>
+      <data key="d3">Compra de materiais médicos</data>
+      <data key="d4">95000.0</data>
+      <data key="d5">2023-05-05</data>
+    </node>
+    <node id="orgao::O101">
+      <data key="d0">orgao::O101</data>
+      <data key="d1">orgao</data>
+      <data key="d6">Secretaria de Saúde</data>
+      <data key="d7">SESAU</data>
+      <data key="d8">Rio de Janeiro</data>
+      <data key="d9">RJ</data>
+    </node>
+    <node id="fornecedor::F101">
+      <data key="d0">fornecedor::F101</data>
+      <data key="d1">fornecedor</data>
+      <data key="d6">SaudeMais Distribuidora</data>
+      <data key="d10">22.222.222/0001-22</data>
+      <data key="d11">CNPJ</data>
+      <data key="d8">Niterói</data>
+      <data key="d9">RJ</data>
+    </node>
+    <node id="contrato::C101">
+      <data key="d0">contrato::C101</data>
+      <data key="d1">contrato</data>
+    </node>
+    <edge source="empenho::E100" target="fornecedor::F100" id="empenho_fornecedor">
+      <data key="d12">empenho_fornecedor</data>
+      <data key="d13">180000.0</data>
+    </edge>
+    <edge source="empenho::E100" target="contrato::C100" id="empenho_contrato">
+      <data key="d12">empenho_contrato</data>
+    </edge>
+    <edge source="orgao::O100" target="empenho::E100" id="orgao_empenho">
+      <data key="d12">orgao_empenho</data>
+      <data key="d13">180000.0</data>
+    </edge>
+    <edge source="empenho::E101" target="fornecedor::F101" id="empenho_fornecedor">
+      <data key="d12">empenho_fornecedor</data>
+      <data key="d13">95000.0</data>
+    </edge>
+    <edge source="empenho::E101" target="contrato::C101" id="empenho_contrato">
+      <data key="d12">empenho_contrato</data>
+    </edge>
+    <edge source="orgao::O101" target="empenho::E101" id="orgao_empenho">
+      <data key="d12">orgao_empenho</data>
+      <data key="d13">95000.0</data>
+    </edge>
+  </graph>
+</graphml>
