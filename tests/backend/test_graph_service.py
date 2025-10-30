@@ -1,6 +1,7 @@
 from src.backend.services.graph_service import GraphService
 from src.backend.services.sample_data import SAMPLE_PAYLOAD
 from src.common.settings import get_settings
+from src.db.repository import GraphRepository
 
 
 def reset_settings_cache():
@@ -59,3 +60,43 @@ def test_load_graph_with_custom_payload(monkeypatch):
     }
     summary = service.get_graph_summary(payloads=custom_payload)
     assert summary["empenhos"] == 1
+
+
+def test_live_fetch_uses_cache(monkeypatch):
+    monkeypatch.setenv("ENABLE_LIVE_FETCH", "true")
+    monkeypatch.setenv("GRAPH_CACHE_TTL_SECONDS", "3600")
+    reset_settings_cache()
+
+    calls = {"count": 0}
+
+    def fake_fetch(self):
+        calls["count"] += 1
+        return SAMPLE_PAYLOAD
+
+    monkeypatch.setattr(GraphRepository, "fetch_payloads", fake_fetch, raising=False)
+
+    service = GraphService()
+    service.get_graph_summary()
+    service.get_graph_summary()
+
+    assert calls["count"] == 1
+
+    reset_settings_cache()
+
+
+def test_live_fetch_fallback_to_sample(monkeypatch):
+    monkeypatch.setenv("ENABLE_LIVE_FETCH", "true")
+    monkeypatch.setenv("GRAPH_CACHE_TTL_SECONDS", "0")
+    reset_settings_cache()
+
+    def boom(self):
+        raise RuntimeError("erro de rede")
+
+    monkeypatch.setattr(GraphRepository, "fetch_payloads", boom, raising=False)
+
+    service = GraphService()
+    summary = service.get_graph_summary()
+
+    assert summary["empenhos"] == len(SAMPLE_PAYLOAD["empenhos"])
+
+    reset_settings_cache()

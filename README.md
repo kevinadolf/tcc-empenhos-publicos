@@ -21,6 +21,9 @@ Copie `.env.example` para `.env` e ajuste quando necessário.
 - `ENABLE_LIVE_FETCH=true` habilita coleta real na API do TCE-RJ (padrão: dados mockados).
 - `TCE_API_BASE_URL` e `TCE_API_PAGE_SIZE` configuram a paginação.
 - `TCE_API_MAX_PAGES` limita a quantidade de páginas durante desenvolvimento.
+- `TCE_API_YEARS=2024,2023` permite restringir os anos consultados (vazio busca dados gerais do endpoint estadual).
+- `TCE_API_MAX_RECORDS=2000` restringe o volume máximo de empenhos trazidos por carga.
+- `GRAPH_CACHE_TTL_SECONDS=600` define por quanto tempo o backend reaproveita o grafo já carregado.
 
 ## Execução
 - **Backend/API:** `python -m src.backend.app` (porta `8000`).

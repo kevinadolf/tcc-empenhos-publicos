@@ -59,4 +59,4 @@ docs/
 ## Próximos Passos
 - Definir requisitos de dados do grafo e preparar dataset amostral.
 - Especificar contratos da API em `docs/backend/openapi.yaml`.
-- Configurar dependências principais (Flask, NetworkX, Pandas, PyTorch Geometric opcional).
+- Configurar dependências principais (Flask, PySpark, GraphFrames, Pandas).

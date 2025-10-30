@@ -93,3 +93,70 @@ class TCEDataClient:
 
     def fetch_unidades_gestoras(self, **params: str) -> List[Dict]:
         return self.fetch_collection("unidades-gestoras", params=params)
+
+    def _fetch_offset_resource(
+        self,
+        endpoint: str,
+        params: Optional[Dict[str, str]] = None,
+        *,
+        data_key: Optional[str] = None,
+        offset_param: str = "inicio",
+        limit_param: str = "limite",
+    ) -> List[Dict]:
+        """Retrieve collections that use offset/limit pagination rather than page/pageSize."""
+
+        params = dict(params or {})
+        limit = int(params.get(limit_param) or self.config.page_size)
+        params[limit_param] = limit
+        offset = int(params.get(offset_param) or 0)
+        records: List[Dict] = []
+        page = 0
+
+        while True:
+            query = dict(params)
+            query[offset_param] = offset
+            payload = self._get(endpoint, params=query)
+
+            batch = payload
+            if data_key:
+                if data_key not in payload:
+                    raise ValueError(
+                        f"Payload missing '{data_key}' key for endpoint '{endpoint}'",
+                    )
+                batch = payload[data_key]
+
+            if not isinstance(batch, Iterable):
+                raise ValueError(f"Unexpected payload format for endpoint '{endpoint}'")
+
+            batch_list = list(batch)
+            records.extend(batch_list)
+
+            logger.debug(
+                "Fetched %s records from %s (offset %s)",
+                len(batch_list),
+                endpoint,
+                offset,
+            )
+
+            if not batch_list:
+                break
+
+            offset += len(batch_list)
+            page += 1
+
+            if self.config.max_pages and page >= self.config.max_pages:
+                break
+
+            if len(batch_list) < limit:
+                break
+
+        return records
+
+    def fetch_empenho_estado(self, **params: str) -> List[Dict]:
+        """Fetches empenho records for unidades estaduais."""
+
+        return self._fetch_offset_resource(
+            "empenho_estado",
+            params=params,
+            data_key="Empenhos",
+        )

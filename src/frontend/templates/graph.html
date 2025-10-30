@@ -22,7 +22,19 @@
 
   <div class="graph-layout">
     <div class="graph-canvas" id="graph-canvas">
-      <div class="graph-status" id="graph-status">Carregando dados do grafo…</div>
+      <div
+        class="graph-status graph-status--info"
+        id="graph-status"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <div class="graph-status__content">
+          <span class="graph-status__loader" aria-hidden="true"></span>
+          <p class="graph-status__message">Carregando dados do grafo…</p>
+          <div class="graph-status__bar" aria-hidden="true"></div>
+        </div>
+      </div>
     </div>
     <aside class="graph-sidebar" id="graph-sidebar">
       <h2 class="sidebar__title">Detalhes</h2>

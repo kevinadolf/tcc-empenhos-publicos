@@ -1,7 +1,5 @@
-import builtins
-
-import networkx as nx
 import pytest
+from pyspark.sql import DataFrame
 
 from src.analysis.metrics import (
     community_detection_louvain,
@@ -10,6 +8,7 @@ from src.analysis.metrics import (
     shannon_entropy_by_neighbor,
     weighted_degree_centrality,
 )
+from src.common.spark_graph import SparkGraph
 from src.db.graph_builder import NODE_FORNECEDOR, NODE_ORGAO
 
 
@@ -36,20 +35,18 @@ def test_entropy_handles_zero_values():
 
 def test_project_bipartite(sample_graph):
     projected = project_bipartite(sample_graph, NODE_ORGAO, NODE_FORNECEDOR)
-    assert isinstance(projected, nx.Graph)
-    assert projected.number_of_nodes() >= 0
+    assert isinstance(projected, DataFrame)
+    assert projected.count() >= 0
 
 
-def test_community_detection_louvain_fallback(monkeypatch):
-    original_import = builtins.__import__
+def test_community_detection_louvain_fallback(monkeypatch, sample_graph):
+    def raise_error(_self):
+        raise RuntimeError("GraphFrames not available")
 
-    def fake_import(name, *args, **kwargs):
-        if name == "networkx.algorithms.community":
-            raise ImportError
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", fake_import)
-    graph = nx.Graph()
-    graph.add_edge("a", "b")
-    communities = community_detection_louvain(graph)
-    assert communities == {"a": 0, "b": 0}
+    monkeypatch.setattr(SparkGraph, "as_graphframe", raise_error, raising=True)
+    communities = community_detection_louvain(sample_graph)
+    vertex_ids = {
+        row["id"] for row in sample_graph.vertices.select("id").collect()
+    }
+    assert set(communities.keys()) == vertex_ids
+    assert set(communities.values()) == {0}

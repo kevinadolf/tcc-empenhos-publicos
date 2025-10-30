@@ -1,25 +1,38 @@
-"""Graph metrics used to support anomaly detection."""
+"""Graph metrics implemented with PySpark DataFrames and GraphFrames."""
 
 from __future__ import annotations
 
 import math
-from collections import Counter, defaultdict
-from typing import Dict, Iterable, Tuple
+from typing import Dict, Iterable
 
-import networkx as nx
+from pyspark.sql import DataFrame, functions as F
+
+from src.common.spark_graph import SparkGraph
 
 
-def weighted_degree_centrality(graph: nx.MultiDiGraph, node_type: str) -> Dict:
-    """Compute weighted degree centrality for nodes of a given type."""
+def weighted_degree_centrality(graph: SparkGraph, node_type: str) -> Dict[str, float]:
+    """Compute weighted degree centrality for vertices of a given type."""
+    vertices = graph.vertices.alias("v")
+    edges = graph.edges.alias("e")
+    weight_col = F.coalesce(F.col("e.valor"), F.lit(1.0))
 
-    centrality = defaultdict(float)
-    for u, v, data in graph.edges(data=True):
-        weight = data.get("valor", 1.0)
-        if u[0] == node_type:
-            centrality[u] += weight
-        if v[0] == node_type:
-            centrality[v] += weight
-    return dict(centrality)
+    outgoing = (
+        edges.join(vertices, F.col("e.src") == F.col("v.id"))
+        .where(F.col("v.node_type") == node_type)
+        .groupBy(F.col("e.src").alias("node_id"))
+        .agg(F.sum(weight_col).alias("centrality"))
+    )
+
+    incoming = (
+        edges.join(vertices, F.col("e.dst") == F.col("v.id"))
+        .where(F.col("v.node_type") == node_type)
+        .groupBy(F.col("e.dst").alias("node_id"))
+        .agg(F.sum(weight_col).alias("centrality"))
+    )
+
+    scores = outgoing.unionByName(incoming, allowMissingColumns=True)
+    aggregated = scores.groupBy("node_id").agg(F.sum("centrality").alias("centrality"))
+    return {row["node_id"]: float(row["centrality"]) for row in aggregated.collect()}
 
 
 def entropy(values: Iterable[float]) -> float:
@@ -32,53 +45,98 @@ def entropy(values: Iterable[float]) -> float:
     return -sum(p * math.log(p, 2) for p in probs)
 
 
-def shannon_entropy_by_neighbor(graph: nx.MultiDiGraph, focus_type: str, neighbor_type: str) -> Dict:
-    """Entropy of distribution of weights from focus nodes towards neighbor nodes."""
+def shannon_entropy_by_neighbor(
+    graph: SparkGraph,
+    focus_type: str,
+    neighbor_type: str,
+) -> Dict[str, float]:
+    vertices = graph.vertices.alias("v")
+    edges = graph.edges.alias("e")
+    focus_vertices = vertices.filter(F.col("v.node_type") == focus_type).select(
+        F.col("v.id").alias("focus_id"),
+    )
+    neighbor_vertices = vertices.filter(F.col("v.node_type") == neighbor_type).select(
+        F.col("v.id").alias("neighbor_id"),
+    )
 
-    distribution: Dict = {}
-    for node in [n for n in graph.nodes if graph.nodes[n].get("type") == focus_type]:
-        neighbor_weights = Counter()
+    weight_col = F.coalesce(F.col("e.valor"), F.lit(1.0))
 
-        # Outgoing edges
-        for _, neighbor, data in graph.edges(node, data=True):
-            if graph.nodes[neighbor].get("type") == neighbor_type:
-                neighbor_weights[neighbor] += data.get("valor", 1.0)
+    outgoing = (
+        edges.join(focus_vertices, F.col("e.src") == F.col("focus_id"))
+        .join(neighbor_vertices, F.col("e.dst") == F.col("neighbor_id"))
+        .select("focus_id", "neighbor_id", weight_col.alias("weight"))
+    )
 
-        # Incoming edges
-        for source, _, data in graph.in_edges(node, data=True):
-            if graph.nodes[source].get("type") == neighbor_type:
-                neighbor_weights[source] += data.get("valor", 1.0)
+    incoming = (
+        edges.join(focus_vertices, F.col("e.dst") == F.col("focus_id"))
+        .join(neighbor_vertices, F.col("e.src") == F.col("neighbor_id"))
+        .select("focus_id", "neighbor_id", weight_col.alias("weight"))
+    )
 
-        if not neighbor_weights:
-            for source, _, data in graph.in_edges(node, data=True):
-                for predecessor, _, data_prev in graph.in_edges(source, data=True):
-                    if graph.nodes[predecessor].get("type") == neighbor_type:
-                        neighbor_weights[predecessor] += data_prev.get("valor", data.get("valor", 1.0))
+    distributions = outgoing.unionByName(incoming, allowMissingColumns=True)
+    if distributions.rdd.isEmpty():
+        return {row["focus_id"]: 0.0 for row in focus_vertices.collect()}
 
-        distribution[node] = entropy(neighbor_weights.values())
+    totals = distributions.groupBy("focus_id").agg(F.sum("weight").alias("total_weight"))
+    joined = distributions.join(totals, on="focus_id")
 
-    return distribution
+    entropy_components = joined.filter(F.col("weight") > 0).select(
+        "focus_id",
+        (
+            -F.col("weight")
+            / F.col("total_weight")
+            * (F.log(F.col("weight") / F.col("total_weight")) / F.log(F.lit(2.0)))
+        ).alias("component"),
+    )
+
+    entropy_df = entropy_components.groupBy("focus_id").agg(
+        F.sum("component").alias("entropy"),
+    )
+
+    results = (
+        focus_vertices.join(entropy_df, on="focus_id", how="left")
+        .fillna({"entropy": 0.0})
+        .collect()
+    )
+    return {row["focus_id"]: float(row["entropy"]) for row in results}
 
 
-def project_bipartite(graph: nx.MultiDiGraph, source_type: str, target_type: str) -> nx.Graph:
-    """Project a heterogeneous graph into a bipartite representation."""
+def project_bipartite(
+    graph: SparkGraph,
+    source_type: str,
+    target_type: str,
+) -> DataFrame:
+    """Return the edge projection between two node types."""
+    vertices = graph.vertices.alias("v")
+    edges = graph.edges.alias("e")
 
-    projected = nx.Graph()
-    for u, v, data in graph.edges(data=True):
-        if graph.nodes[u]["type"] == source_type and graph.nodes[v]["type"] == target_type:
-            projected.add_edge(u, v, weight=data.get("valor", 1.0))
-    return projected
+    source_vertices = vertices.filter(F.col("v.node_type") == source_type).select(
+        F.col("v.id").alias("source_id"),
+    )
+    target_vertices = vertices.filter(F.col("v.node_type") == target_type).select(
+        F.col("v.id").alias("target_id"),
+    )
+
+    weight_col = F.coalesce(F.col("e.valor"), F.lit(1.0))
+
+    return (
+        edges.join(source_vertices, F.col("e.src") == F.col("source_id"))
+        .join(target_vertices, F.col("e.dst") == F.col("target_id"))
+        .select("source_id", "target_id", weight_col.alias("weight"))
+    )
 
 
-def community_detection_louvain(graph: nx.Graph) -> Dict:
+def community_detection_louvain(
+    graph: SparkGraph,
+    max_iter: int = 20,
+) -> Dict[str, int]:
+    """Approximate Louvain communities via label propagation on GraphFrames."""
     try:
-        import networkx.algorithms.community as nx_comm
+        graphframe = graph.as_graphframe()
+    except Exception:  # pragma: no cover - GraphFrames is optional at runtime
+        return {
+            row["id"]: 0 for row in graph.vertices.select("id").collect()
+        }
 
-        communities = nx_comm.louvain_communities(graph, weight="weight", seed=42)
-        assignment = {}
-        for idx, community in enumerate(communities):
-            for node in community:
-                assignment[node] = idx
-        return assignment
-    except ImportError:
-        return {node: 0 for node in graph.nodes}
+    communities = graphframe.labelPropagation(maxIter=max_iter).select("id", "label")
+    return {row["id"]: int(row["label"]) for row in communities.collect()}

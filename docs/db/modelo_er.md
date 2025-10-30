@@ -17,13 +17,13 @@ O grafo heterogêneo representa o ciclo do gasto público conectando órgãos, e
 ## Construção
 1. **Coleta** via `TCEDataClient` nos endpoints `/empenhos`, `/fornecedores` e `/unidades-gestoras`.
 2. **Normalização** em DataFrames (`build_empenhos_df`, `build_fornecedores_df`, `build_orgaos_df`).
-3. **Montagem do grafo** com `build_heterogeneous_graph`, gerando um `MultiDiGraph` do NetworkX.
+3. **Montagem do grafo** com `build_heterogeneous_graph`, produzindo DataFrames Spark de vértices e arestas encapsulados em um `GraphFrame`.
 
 ## Métricas de Apoio
-O grafo suporta as métricas definidas pelo agente de Data Science:
+O grafo suporta as métricas calculadas em PySpark/GraphFrames:
 - Centralidade de grau ponderada (valores financeiros).
 - Entropia de distribuição de gastos por fornecedor/órgão.
-- Detecção de comunidades (e.g., algoritmo Louvain) aplicada sobre subgrafos projetados.
+- Detecção de comunidades (propagação de rótulos via GraphFrames) aplicada sobre subgrafos projetados.
 
 ## Estratégia de Persistência
 Inicialmente, o grafo é mantido em memória. Para reprodutibilidade, o `GraphRepository` aceita payloads locais e o modo live (habilitado via `ENABLE_LIVE_FETCH=true`) consulta o TCE-RJ com paginação controlada.

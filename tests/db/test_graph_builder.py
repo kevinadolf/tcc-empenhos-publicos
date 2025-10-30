@@ -1,3 +1,5 @@
+from pyspark.sql import functions as F
+
 from src.db.graph_builder import (
     EDGE_EMPENHO_FORNECEDOR,
     EDGE_ORGAO_EMPENHO,
@@ -9,31 +11,30 @@ from src.db.graph_builder import (
 )
 
 
-def test_graph_has_expected_nodes(sample_dataframes):
+def test_graph_has_expected_nodes(sample_dataframes, spark):
     empenhos, fornecedores, orgaos = sample_dataframes
     graph = build_heterogeneous_graph(
         empenhos,
         fornecedores_df=fornecedores,
         orgaos_df=orgaos,
         include_contratos=False,
+        spark=spark,
     )
 
-    orgao_nodes = [n for n in graph.nodes if n[0] == NODE_ORGAO]
-    fornecedor_nodes = [n for n in graph.nodes if n[0] == NODE_FORNECEDOR]
-    empenho_nodes = [n for n in graph.nodes if n[0] == NODE_EMPENHO]
-
-    assert len(orgao_nodes) == 2
-    assert len(fornecedor_nodes) == 2
-    assert len(empenho_nodes) == 3
+    vertices = graph.vertices
+    assert vertices.filter(F.col("node_type") == NODE_ORGAO).count() == 2
+    assert vertices.filter(F.col("node_type") == NODE_FORNECEDOR).count() == 2
+    assert vertices.filter(F.col("node_type") == NODE_EMPENHO).count() == 3
 
 
 def test_graph_edges_connect_entities(sample_graph):
-    edges = list(sample_graph.edges(data=True, keys=True))
-    has_orgao_empenho = any(edge[2] == EDGE_ORGAO_EMPENHO for edge in edges)
-    has_empenho_fornecedor = any(edge[2] == EDGE_EMPENHO_FORNECEDOR for edge in edges)
-
-    assert has_orgao_empenho
-    assert has_empenho_fornecedor
+    edges = sample_graph.edges
+    assert (
+        edges.filter(F.col("edge_type") == EDGE_ORGAO_EMPENHO).count() > 0
+    )
+    assert (
+        edges.filter(F.col("edge_type") == EDGE_EMPENHO_FORNECEDOR).count() > 0
+    )
 
 
 def test_filter_empenhos_by_period(sample_dataframes):

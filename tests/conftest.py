@@ -7,6 +7,12 @@ from src.db.dataframes import (
     build_orgaos_df,
 )
 from src.db.graph_builder import build_heterogeneous_graph
+from src.common.spark_session import get_spark_session
+
+
+@pytest.fixture(scope="session")
+def spark():
+    return get_spark_session("TCCPytests")
 
 
 @pytest.fixture
@@ -90,11 +96,12 @@ def sample_dataframes(sample_payloads):
 
 
 @pytest.fixture
-def sample_graph(sample_dataframes):
+def sample_graph(sample_dataframes, spark):
     empenhos, fornecedores, orgaos = sample_dataframes
     return build_heterogeneous_graph(
         empenhos,
         fornecedores_df=fornecedores,
         orgaos_df=orgaos,
         include_contratos=True,
+        spark=spark,
     )

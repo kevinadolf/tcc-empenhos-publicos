@@ -1,13 +1,12 @@
-"""Utilities to serialize NetworkX graphs for persistence and frontend consumption."""
+"""Utilities to serialize Spark-based graphs for persistence and frontend consumption."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, List, Tuple
 
-import networkx as nx
-from networkx.readwrite import json_graph
+from src.common.spark_graph import SparkGraph
 
 
 def normalize_node_id(node: Any) -> str:
@@ -17,66 +16,163 @@ def normalize_node_id(node: Any) -> str:
     return str(node)
 
 
-def prepare_serializable_graph(graph: nx.MultiDiGraph) -> nx.MultiDiGraph:
-    """Copy the graph with flattened node identifiers and original metadata."""
-    serializable = nx.MultiDiGraph()
-    for node, data in graph.nodes(data=True):
-        node_id = normalize_node_id(node)
-        serializable.add_node(node_id, original_id=node_id, **data)
+def _collect_nodes(graph: SparkGraph) -> List[Dict[str, Any]]:
+    rows = graph.vertices.select(
+        "id",
+        "node_type",
+        "original_id",
+        "nome",
+        "sigla",
+        "municipio",
+        "uf",
+        "documento",
+        "tipo_documento",
+        "numero",
+        "descricao",
+        "valor",
+        "data",
+    ).toLocalIterator()
 
-    for source, target, key, data in graph.edges(keys=True, data=True):
-        serializable.add_edge(
-            normalize_node_id(source),
-            normalize_node_id(target),
-            key=key,
-            **data,
+    nodes: List[Dict[str, Any]] = []
+    for row in rows:
+        data = row.asDict()
+        node_id = normalize_node_id(data.pop("id"))
+        node_type = data.pop("node_type", None)
+        if data.get("valor") is not None:
+            try:
+                data["valor"] = float(data["valor"])
+            except (TypeError, ValueError):
+                pass
+        if data.get("data") is not None:
+            data["data"] = str(data["data"])
+        nodes.append(
+            {
+                "id": node_id,
+                "type": node_type,
+                **{key: value for key, value in data.items() if value is not None},
+            },
         )
+    return nodes
 
-    return serializable
+
+def _collect_edges(graph: SparkGraph) -> List[Dict[str, Any]]:
+    rows = graph.edges.select("src", "dst", "edge_type", "valor").toLocalIterator()
+    edges: List[Dict[str, Any]] = []
+    for row in rows:
+        data = row.asDict()
+        valor = data.get("valor")
+        if valor is not None:
+            try:
+                valor = float(valor)
+            except (TypeError, ValueError):
+                pass
+        edges.append(
+            {
+                "source": normalize_node_id(data["src"]),
+                "target": normalize_node_id(data["dst"]),
+                "type": data.get("edge_type"),
+                **({"valor": valor} if valor is not None else {}),
+            },
+        )
+    return edges
 
 
-def to_node_link_data(graph: nx.MultiDiGraph) -> Dict[str, Any]:
+def _compute_layout(nodes: List[Dict[str, Any]], edges: List[Dict[str, Any]]) -> Dict[str, Tuple[float, float]]:
+    if len(nodes) == 0 or len(nodes) > 1000:
+        return {}
+    try:
+        import networkx as nx  # type: ignore
+    except ImportError:  # pragma: no cover - layout is optional
+        return {}
+
+    graph = nx.Graph()
+    for node in nodes:
+        graph.add_node(node["id"])
+    for edge in edges:
+        graph.add_edge(edge["source"], edge["target"])
+
+    positions = nx.spring_layout(graph, seed=42, dim=2, k=None)
+    return {node_id: (float(x), float(y)) for node_id, (x, y) in positions.items()}
+
+
+def to_node_link_data(graph: SparkGraph) -> Dict[str, Any]:
     """Serialize the graph to a JSON-compatible node-link structure."""
-    serializable = prepare_serializable_graph(graph)
-    # Pre-compute positions to support frontend rendering.
-    if serializable.number_of_nodes() > 0:
-        positions = nx.spring_layout(serializable, seed=42, dim=2, k=None)
-        for node_id, (x, y) in positions.items():
-            serializable.nodes[node_id]["x"] = float(x)
-            serializable.nodes[node_id]["y"] = float(y)
-    return json_graph.node_link_data(serializable)
+    nodes = _collect_nodes(graph)
+    edges = _collect_edges(graph)
+
+    layout = _compute_layout(nodes, edges)
+    for node in nodes:
+        coords = layout.get(node["id"])
+        if coords:
+            node["x"], node["y"] = coords
+
+    return {
+        "nodes": nodes,
+        "links": edges,
+    }
 
 
 def export_graph_snapshot(
-    graph: nx.MultiDiGraph,
+    graph: SparkGraph,
     graphml_path: Path,
     json_path: Path,
 ) -> None:
     """Persist the graph to GraphML and node-link JSON files."""
-    serializable = prepare_serializable_graph(graph)
-    nx.write_graphml(serializable, graphml_path)
+    nodes = _collect_nodes(graph)
+    edges = _collect_edges(graph)
+
+    try:
+        import networkx as nx  # type: ignore
+    except ImportError:  # pragma: no cover - optional dependency
+        nx = None
+
+    if nx is not None:
+        serializable = nx.MultiDiGraph()
+        for node in nodes:
+            serializable.add_node(node["id"], **{k: v for k, v in node.items() if k != "id"})
+        for edge in edges:
+            attrs = {k: v for k, v in edge.items() if k not in {"source", "target"}}
+            serializable.add_edge(edge["source"], edge["target"], **attrs)
+        nx.write_graphml(serializable, graphml_path)
+
     json_path.write_text(
-        json.dumps(json_graph.node_link_data(serializable), indent=2, ensure_ascii=False),
+        json.dumps({"nodes": nodes, "links": edges}, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
 
 
-def iter_node_summaries(graph: nx.MultiDiGraph) -> Iterable[Dict[str, Any]]:
+def iter_node_summaries(graph: SparkGraph) -> Iterable[Dict[str, Any]]:
     """Yield lightweight node summaries suitable for list views."""
-    for node_id, attrs in graph.nodes(data=True):
+    rows = graph.vertices.select(
+        "id",
+        "node_type",
+        "nome",
+        "descricao",
+        "numero",
+        "original_id",
+        "valor",
+    ).toLocalIterator()
+
+    for row in rows:
+        data = row.asDict()
+        node_id = normalize_node_id(data["id"])
+        label = (
+            data.get("nome")
+            or data.get("descricao")
+            or data.get("numero")
+            or data.get("original_id")
+            or node_id
+        )
         summary = {
-            "id": normalize_node_id(node_id),
-            "label": attrs.get("nome")
-            or attrs.get("descricao")
-            or attrs.get("numero")
-            or attrs.get("original_id")
-            or normalize_node_id(node_id),
-            "type": attrs.get("type"),
-            "original_id": attrs.get("original_id") or normalize_node_id(node_id),
+            "id": node_id,
+            "label": label,
+            "type": data.get("node_type"),
+            "original_id": data.get("original_id") or node_id,
         }
-        if "valor" in attrs:
+        if data.get("valor") is not None:
             try:
-                summary["valor"] = float(attrs["valor"])
+                summary["valor"] = float(data["valor"])
             except (TypeError, ValueError):
-                summary["valor"] = attrs["valor"]
+                summary["valor"] = data["valor"]
         yield summary
+

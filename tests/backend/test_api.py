@@ -3,14 +3,22 @@ import json
 import pytest
 
 from src.backend.app import create_app
+from src.backend.services.graph_service import GraphService
+from src.common.settings import get_settings
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
+    monkeypatch.setenv("ENABLE_LIVE_FETCH", "false")
+    get_settings.cache_clear()
+    from src.backend.routes import api as api_routes
+
+    api_routes.service = GraphService()
     app = create_app()
     app.config.update({"TESTING": True})
     with app.test_client() as client:
         yield client
+    get_settings.cache_clear()
 
 
 def test_health_endpoint(client):

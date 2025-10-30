@@ -45,12 +45,57 @@
     maximumFractionDigits: 2,
   });
 
-  function setStatus(message) {
+  function setStatus(message, options = {}) {
     if (!elements.status) {
       return;
     }
-    elements.status.textContent = message;
+    const { loading = false, detail = "", action = null, variant = "info" } = options;
+
     elements.status.hidden = false;
+    elements.status.classList.remove("graph-status--error");
+    elements.status.classList.remove("graph-status--info");
+    elements.status.classList.add(
+      variant === "error" ? "graph-status--error" : "graph-status--info",
+    );
+    elements.status.setAttribute("aria-busy", loading ? "true" : "false");
+
+    const parts = [];
+
+    if (loading) {
+      parts.push('<span class="graph-status__loader" aria-hidden="true"></span>');
+    }
+
+    parts.push(`<p class="graph-status__message">${message}</p>`);
+
+    if (detail) {
+      parts.push(`<p class="graph-status__detail">${detail}</p>`);
+    }
+
+    if (loading) {
+      parts.push('<div class="graph-status__bar" role="progressbar" aria-hidden="true"></div>');
+    }
+
+    if (action?.label) {
+      parts.push(
+        `<button type="button" class="button button--secondary graph-status__action">${action.label}</button>`,
+      );
+    }
+
+    elements.status.innerHTML = `<div class="graph-status__content">${parts.join("")}</div>`;
+
+    if (action?.handler) {
+      const button = elements.status.querySelector(".graph-status__action");
+      if (button) {
+        button.addEventListener(
+          "click",
+          (event) => {
+            event.preventDefault();
+            action.handler();
+          },
+          { once: true },
+        );
+      }
+    }
   }
 
   function clearStatus() {
@@ -58,18 +103,23 @@
       return;
     }
     elements.status.hidden = true;
+    elements.status.setAttribute("aria-busy", "false");
   }
 
-  function showError(message) {
-    if (!elements.canvas) {
-      return;
-    }
-    elements.canvas.innerHTML = "";
-    const box = document.createElement("div");
-    box.className = "graph-error";
-    box.textContent = message;
-    elements.canvas.appendChild(box);
+  function showError(message, detail = "") {
+    setStatus(message, {
+      variant: "error",
+      detail,
+      loading: false,
+      action: {
+        label: "Tentar novamente",
+        handler: () => {
+          loadGraph();
+        },
+      },
+    });
   }
+
 
   function buildAdjacency(nodes, links) {
     const adjacency = new Map();
@@ -129,6 +179,7 @@
     const height = rect.height || 640;
     state.dimensions = { width, height };
 
+    const statusNode = elements.status;
     elements.canvas.innerHTML = "";
     const svg = d3
       .select(elements.canvas)
@@ -138,6 +189,10 @@
       .attr("height", height);
 
     const inner = svg.append("g").attr("class", "graph-inner");
+
+    if (statusNode) {
+      elements.canvas.appendChild(statusNode);
+    }
 
     const zoom = d3
       .zoom()
@@ -465,9 +520,32 @@
   }
 
   async function loadGraph() {
+    let slowWarningTimer = null;
+    let timeoutId = null;
+
     try {
-      setStatus("Carregando dados do grafo…");
-      const response = await fetch("/api/graph/snapshot");
+      setStatus("Carregando dados do grafo…", {
+        loading: true,
+        detail: "Buscando dados atualizados no portal do TCE-RJ.",
+      });
+
+      slowWarningTimer = window.setTimeout(() => {
+        setStatus("Aguarde, ainda estamos montando o grafo…", {
+          loading: true,
+          detail:
+            "A primeira carga pode levar alguns minutos enquanto processamos milhares de empenhos. Assim que concluir, o resultado fica em cache para as próximas visitas.",
+        });
+      }, 6000);
+
+      const controller = new AbortController();
+      timeoutId = window.setTimeout(() => controller.abort(), 60000);
+
+      const response = await fetch("/api/graph/snapshot", {
+        signal: controller.signal,
+      });
+
+      window.clearTimeout(timeoutId);
+      timeoutId = null;
       if (!response.ok) {
         throw new Error(`Não foi possível carregar o grafo (status ${response.status}).`);
       }
@@ -482,7 +560,23 @@
       clearStatus();
     } catch (error) {
       console.error(error);
-      showError(error.message || "Erro inesperado ao carregar o grafo.");
+      if (error && error.name === "AbortError") {
+        showError(
+          "Tempo limite ao carregar o grafo.",
+          "Tente novamente ou reduza o volume de dados ajustando os parâmetros TCE_API_YEARS / TCE_API_MAX_RECORDS.",
+        );
+      } else {
+        showError(error.message || "Erro inesperado ao carregar o grafo.");
+      }
+    } finally {
+      if (slowWarningTimer) {
+        window.clearTimeout(slowWarningTimer);
+        slowWarningTimer = null;
+      }
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+        timeoutId = null;
+      }
     }
   }
 
