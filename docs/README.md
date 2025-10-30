@@ -60,3 +60,4 @@ docs/
 - Definir requisitos de dados do grafo e preparar dataset amostral.
 - Especificar contratos da API em `docs/backend/openapi.yaml`.
 - Configurar dependências principais (Flask, PySpark, GraphFrames, Pandas).
+- Definir `GRAPH_DATA_SOURCE` para alternar entre dados de demonstração (`sample`), dados aleatórios (`random`) ou coleta via API (`api`).

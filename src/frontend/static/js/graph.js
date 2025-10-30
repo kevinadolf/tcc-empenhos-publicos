@@ -5,6 +5,7 @@
     sidebar: document.getElementById("sidebar-content"),
     fit: document.getElementById("fit-graph"),
     typeFilter: document.getElementById("type-filter"),
+    dataSource: document.getElementById("data-source"),
   };
 
   if (!elements.canvas) {
@@ -31,6 +32,7 @@
       height: 640,
     },
     pendingFocusId: null,
+    dataSource: "sample",
   };
 
   const TYPE_COLORS = {
@@ -52,6 +54,7 @@
     const { loading = false, detail = "", action = null, variant = "info" } = options;
 
     elements.status.hidden = false;
+    elements.status.style.display = "block";
     elements.status.classList.remove("graph-status--error");
     elements.status.classList.remove("graph-status--info");
     elements.status.classList.add(
@@ -103,6 +106,7 @@
       return;
     }
     elements.status.hidden = true;
+    elements.status.style.display = "none";
     elements.status.setAttribute("aria-busy", "false");
   }
 
@@ -524,23 +528,46 @@
     let timeoutId = null;
 
     try {
+      const source = state.dataSource || "sample";
+      const loadingMessages = {
+        sample: {
+          detail: "Carregando conjunto de demonstração incluído no projeto.",
+        },
+        random: {
+          detail: "Gerando grafo sintético para explorar rapidamente a interface.",
+        },
+        api: {
+          detail: "Buscando dados atualizados no portal do TCE-RJ.",
+        },
+      };
+
+      const { detail } = loadingMessages[source] || loadingMessages.sample;
+
       setStatus("Carregando dados do grafo…", {
         loading: true,
-        detail: "Buscando dados atualizados no portal do TCE-RJ.",
+        detail,
       });
 
-      slowWarningTimer = window.setTimeout(() => {
-        setStatus("Aguarde, ainda estamos montando o grafo…", {
-          loading: true,
-          detail:
-            "A primeira carga pode levar alguns minutos enquanto processamos milhares de empenhos. Assim que concluir, o resultado fica em cache para as próximas visitas.",
-        });
-      }, 6000);
+      if (source === "api") {
+        slowWarningTimer = window.setTimeout(() => {
+          setStatus("Aguarde, ainda estamos montando o grafo…", {
+            loading: true,
+            detail:
+              "A primeira carga pode levar alguns minutos enquanto processamos milhares de empenhos. Assim que concluir, o resultado fica em cache para as próximas visitas.",
+          });
+        }, 6000);
+      }
 
       const controller = new AbortController();
       timeoutId = window.setTimeout(() => controller.abort(), 60000);
 
-      const response = await fetch("/api/graph/snapshot", {
+      const params = new URLSearchParams();
+      if (source) {
+        params.set("source", source);
+      }
+      const url = `/api/graph/snapshot?${params.toString()}`;
+
+      const response = await fetch(url, {
         signal: controller.signal,
       });
 
@@ -561,9 +588,12 @@
     } catch (error) {
       console.error(error);
       if (error && error.name === "AbortError") {
+        const isApi = state.dataSource === "api";
         showError(
           "Tempo limite ao carregar o grafo.",
-          "Tente novamente ou reduza o volume de dados ajustando os parâmetros TCE_API_YEARS / TCE_API_MAX_RECORDS.",
+          isApi
+            ? "Tente novamente ou reduza o volume de dados ajustando os parâmetros TCE_API_YEARS / TCE_API_MAX_RECORDS."
+            : "Tente novamente; o carregamento rápido deve concluir em instantes.",
         );
       } else {
         showError(error.message || "Erro inesperado ao carregar o grafo.");
@@ -587,6 +617,12 @@
       state.pendingFocusId = focusId;
     }
 
+    const availableSources = ["sample", "random", "api"];
+    const requestedSource = params.get("source");
+    if (requestedSource && availableSources.includes(requestedSource)) {
+      state.dataSource = requestedSource;
+    }
+
     if (elements.fit) {
       elements.fit.addEventListener("click", () => {
         fitGraph();
@@ -596,6 +632,24 @@
     if (elements.typeFilter) {
       elements.typeFilter.addEventListener("change", (event) => {
         applyTypeFilter(event.target.value);
+      });
+    }
+
+    if (elements.dataSource) {
+      const initialSource = availableSources.includes(state.dataSource)
+        ? state.dataSource
+        : elements.dataSource.value;
+      state.dataSource = initialSource;
+      elements.dataSource.value = initialSource;
+
+      elements.dataSource.addEventListener("change", (event) => {
+        const value = event.target.value;
+        state.dataSource = availableSources.includes(value) ? value : "sample";
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set("source", state.dataSource);
+        const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+        window.history.replaceState({}, "", newUrl);
+        loadGraph();
       });
     }
 

@@ -24,6 +24,7 @@ Copie `.env.example` para `.env` e ajuste quando necessário.
 - `TCE_API_YEARS=2024,2023` permite restringir os anos consultados (vazio busca dados gerais do endpoint estadual).
 - `TCE_API_MAX_RECORDS=2000` restringe o volume máximo de empenhos trazidos por carga.
 - `GRAPH_CACHE_TTL_SECONDS=600` define por quanto tempo o backend reaproveita o grafo já carregado.
+- `GRAPH_DATA_SOURCE=sample|api|random` seleciona a origem padrão dos dados (demonstração, API real ou dados sintéticos rápidos).
 
 ## Execução
 - **Backend/API:** `python -m src.backend.app` (porta `8000`).

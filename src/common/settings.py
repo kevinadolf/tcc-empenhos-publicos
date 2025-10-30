@@ -19,6 +19,7 @@ class Settings:
     tce_years: Tuple[int, ...] = ()
     tce_max_records: Optional[int] = None
     graph_cache_ttl_seconds: int = 300
+    graph_data_source: str = "sample"
 
 
 @lru_cache(maxsize=1)
@@ -28,6 +29,8 @@ def get_settings() -> Settings:
     years_raw = os.getenv("TCE_API_YEARS", "")
     max_records = os.getenv("TCE_API_MAX_RECORDS")
     cache_ttl_raw = os.getenv("GRAPH_CACHE_TTL_SECONDS")
+    enable_live_fetch = os.getenv("ENABLE_LIVE_FETCH", "false").lower() == "true"
+    data_source_raw = os.getenv("GRAPH_DATA_SOURCE")
 
     years: Tuple[int, ...] = tuple(
         int(value.strip())
@@ -51,12 +54,24 @@ def get_settings() -> Settings:
     else:
         max_records_value = None
 
+    if data_source_raw is None or not data_source_raw.strip():
+        graph_data_source = "api" if enable_live_fetch else Settings.graph_data_source
+    else:
+        graph_data_source = data_source_raw.strip().lower()
+
+    if graph_data_source not in {"sample", "api", "random"}:
+        graph_data_source = Settings.graph_data_source
+
+    if graph_data_source == "api" and not enable_live_fetch:
+        graph_data_source = "sample"
+
     return Settings(
         tce_base_url=os.getenv("TCE_API_BASE_URL", Settings.tce_base_url),
         api_page_size=int(os.getenv("TCE_API_PAGE_SIZE", Settings.api_page_size)),
         api_max_pages=int(max_pages) if max_pages else None,
-        enable_live_fetch=os.getenv("ENABLE_LIVE_FETCH", "false").lower() == "true",
+        enable_live_fetch=enable_live_fetch,
         tce_years=years,
         tce_max_records=max_records_value,
         graph_cache_ttl_seconds=graph_cache_ttl_seconds,
+        graph_data_source=graph_data_source,
     )

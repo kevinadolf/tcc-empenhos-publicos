@@ -100,3 +100,17 @@ def test_live_fetch_fallback_to_sample(monkeypatch):
     assert summary["empenhos"] == len(SAMPLE_PAYLOAD["empenhos"])
 
     reset_settings_cache()
+
+
+def test_random_source_generates_graph(monkeypatch):
+    monkeypatch.setenv("ENABLE_LIVE_FETCH", "false")
+    monkeypatch.setenv("GRAPH_DATA_SOURCE", "sample")
+    reset_settings_cache()
+
+    service = GraphService()
+    summary = service.get_graph_summary(source="random")
+
+    assert summary["nodes"] > 0
+    assert summary["empenhos"] > 0
+
+    reset_settings_cache()

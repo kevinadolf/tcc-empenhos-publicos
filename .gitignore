@@ -1,0 +1,6 @@
+.github
+.pytest_cache
+.venv
+LICENSE
+docker-compose.yml
+Dockerfile

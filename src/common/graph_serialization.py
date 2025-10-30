@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Tuple
 
@@ -38,11 +39,16 @@ def _collect_nodes(graph: SparkGraph) -> List[Dict[str, Any]]:
         data = row.asDict()
         node_id = normalize_node_id(data.pop("id"))
         node_type = data.pop("node_type", None)
-        if data.get("valor") is not None:
+        valor = data.get("valor")
+        if valor is not None:
             try:
-                data["valor"] = float(data["valor"])
+                numeric = float(valor)
             except (TypeError, ValueError):
-                pass
+                numeric = None
+            if numeric is None or not math.isfinite(numeric):
+                data.pop("valor", None)
+            else:
+                data["valor"] = numeric
         if data.get("data") is not None:
             data["data"] = str(data["data"])
         nodes.append(
@@ -63,9 +69,13 @@ def _collect_edges(graph: SparkGraph) -> List[Dict[str, Any]]:
         valor = data.get("valor")
         if valor is not None:
             try:
-                valor = float(valor)
+                numeric = float(valor)
             except (TypeError, ValueError):
-                pass
+                numeric = None
+            if numeric is None or not math.isfinite(numeric):
+                valor = None
+            else:
+                valor = numeric
         edges.append(
             {
                 "source": normalize_node_id(data["src"]),
@@ -169,10 +179,12 @@ def iter_node_summaries(graph: SparkGraph) -> Iterable[Dict[str, Any]]:
             "type": data.get("node_type"),
             "original_id": data.get("original_id") or node_id,
         }
-        if data.get("valor") is not None:
+        valor = data.get("valor")
+        if valor is not None:
             try:
-                summary["valor"] = float(data["valor"])
+                numeric = float(valor)
             except (TypeError, ValueError):
-                summary["valor"] = data["valor"]
+                numeric = None
+            if numeric is not None and math.isfinite(numeric):
+                summary["valor"] = numeric
         yield summary
-

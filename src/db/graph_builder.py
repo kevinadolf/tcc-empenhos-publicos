@@ -49,7 +49,7 @@ VERTEX_SCHEMA = T.StructType(
         T.StructField("numero", T.StringType(), True),
         T.StructField("descricao", T.StringType(), True),
         T.StructField("valor", T.DoubleType(), True),
-        T.StructField("data", T.TimestampType(), True),
+        T.StructField("data", T.StringType(), True),
     ],
 )
 
@@ -88,7 +88,8 @@ def _prepare_empenho_vertices(empenhos_df: pd.DataFrame) -> pd.DataFrame:
     df["numero"] = df.get("numero_empenho")
     df["descricao"] = df.get("descricao")
     df["valor"] = _sanitize_float(df.get("valor_empenhado", 0.0))
-    df["data"] = _sanitize_timestamp(df.get("data_empenho"))
+    df["data"] = _sanitize_timestamp(df.get("data_empenho")).dt.strftime("%Y-%m-%dT%H:%M:%S")
+    df["data"] = df["data"].fillna(pd.NA)
     return df[VERTEX_COLUMNS]
 
 
@@ -296,4 +297,3 @@ def filter_empenhos_by_period(
         filtered = filtered[filtered["data_empenho"] <= pd.to_datetime(end)]
 
     return filtered
-

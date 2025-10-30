@@ -42,7 +42,7 @@ def detect_entropy_outliers(
     entropy_scores = shannon_entropy_by_neighbor(graph, focus_type, neighbor_type)
     anomalies: List[AnomalyResult] = []
     for node, score in entropy_scores.items():
-        if score > threshold:
+        if score >= threshold:
             anomalies.append(
                 AnomalyResult(
                     score=float(score),
@@ -153,4 +153,3 @@ def run_default_anomaly_suite(graph: SparkGraph) -> Dict[str, List[AnomalyResult
             target_type=NODE_FORNECEDOR,
         ),
     }
-

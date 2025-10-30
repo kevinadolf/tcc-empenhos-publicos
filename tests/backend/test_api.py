@@ -60,3 +60,11 @@ def test_graph_nodes_endpoint(client):
     assert isinstance(data, list)
     first = data[0]
     assert {"id", "label", "type"}.issubset(first.keys())
+
+
+def test_graph_summary_random_source(client):
+    response = client.get("/api/graph/summary?source=random")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["nodes"] > 0
+    assert payload["empenhos"] > 0

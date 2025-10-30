@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from src.backend.services.graph_service import GraphService
+from src.backend.services.graph_service import DATA_SOURCES, GraphService
 from src.common.graph_serialization import export_graph_snapshot
 
 
@@ -34,6 +34,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--payload",
         type=Path,
         help="Arquivo JSON com payloads já coletados (opcional)",
+    )
+    parser.add_argument(
+        "--source",
+        choices=sorted(DATA_SOURCES),
+        help="Origem dos dados do grafo (padrão configurado pelo backend)",
     )
     parser.add_argument(
         "--pretty",
@@ -89,23 +94,24 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     payloads = load_payload_from_file(args.payload) if args.payload else None
     service = GraphService()
+    source = args.source
 
     if args.command == "summary":
-        summary = service.get_graph_summary(payloads=payloads)
+        summary = service.get_graph_summary(payloads=payloads, source=source)
         output = json.dumps(summary, indent=2 if args.pretty else None, ensure_ascii=False)
         print(output)
         return 0
 
     if args.command == "anomalies":
-        anomalies = service.get_anomalies(payloads=payloads)
+        anomalies = service.get_anomalies(payloads=payloads, source=source)
         anomalies = _limit_anomalies(anomalies, args.limit)
         output = json.dumps(anomalies, indent=2 if args.pretty else None, ensure_ascii=False)
         print(output)
         return 0
 
     if args.command == "export":
-        summary = service.get_graph_summary(payloads=payloads)
-        anomalies = service.get_anomalies(payloads=payloads)
+        summary = service.get_graph_summary(payloads=payloads, source=source)
+        anomalies = service.get_anomalies(payloads=payloads, source=source)
         args.summary_path.write_text(
             json.dumps(summary, indent=2, ensure_ascii=False),
             encoding="utf-8",
@@ -119,7 +125,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 0
 
     if args.command == "snapshot":
-        graph, _ = service.load_graph(payloads=payloads)
+        graph, _ = service.load_graph(payloads=payloads, source=source)
         export_graph_snapshot(graph, args.graphml, args.json)
         print(f"Snapshot GraphML salvo em {args.graphml}")
         print(f"Snapshot JSON salvo em {args.json}")

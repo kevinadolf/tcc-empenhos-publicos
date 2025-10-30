@@ -9,6 +9,11 @@
       <p class="page__subtitle">Visualize relações entre órgãos, empenhos e fornecedores em tempo real.</p>
     </div>
     <div class="actions">
+      <select id="data-source" class="select" aria-label="Origem dos dados do grafo">
+        <option value="sample">Dados de demonstração</option>
+        <option value="random">Dados aleatórios</option>
+        <option value="api">API do TCE-RJ</option>
+      </select>
       <button id="fit-graph" class="button button--secondary" type="button">Ajustar Visão</button>
       <select id="type-filter" class="select">
         <option value="all" selected>Todos os tipos</option>
