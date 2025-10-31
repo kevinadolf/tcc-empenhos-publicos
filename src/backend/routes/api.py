@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 from src.backend.services.graph_service import GraphService
 
 api_bp = Blueprint("api", __name__)
-service = GraphService()
+service = GraphService(auto_prefetch=True)
 
 
 @api_bp.get("/health")
@@ -29,6 +29,12 @@ def graph_snapshot():
 def graph_nodes():
     nodes = service.list_nodes(source=request.args.get("source"))
     return jsonify(nodes)
+
+
+@api_bp.get("/graph/fetch/status")
+def graph_fetch_status():
+    status = service.get_fetch_status()
+    return jsonify(status)
 
 
 @api_bp.get("/anomalies")

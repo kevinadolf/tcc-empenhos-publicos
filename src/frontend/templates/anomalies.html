@@ -13,14 +13,25 @@
     </div>
   </header>
   <div class="panel" id="anomalies-panel">
-    <div class="panel__body">
-      <div id="anomaly-status" class="panel__status">Carregando anomalias…</div>
-      <div id="anomaly-content" class="anomaly-list" hidden></div>
+    <div class="panel__body anomaly-layout">
+      <div class="anomaly-list-wrapper">
+        <div id="anomaly-status" class="panel__status">Carregando anomalias…</div>
+        <div id="anomaly-content" class="anomaly-list" hidden></div>
+      </div>
+      <aside class="anomaly-visualizer" id="anomaly-visualizer">
+        <header class="anomaly-visualizer__header">
+          <h2 class="anomaly-visualizer__title">Visualização</h2>
+          <p id="anomaly-selection-label">Selecione uma anomalia para inspecionar o subgrafo relacionado.</p>
+        </header>
+        <div id="anomaly-graph" class="anomaly-graph-canvas" aria-live="polite"></div>
+        <div id="anomaly-details" class="anomaly-details"></div>
+      </aside>
     </div>
   </div>
 </section>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('frontend.static', filename='js/anomalies.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js" defer></script>
+<script src="{{ url_for('frontend.static', filename='js/anomalies.js') }}" defer></script>
 {% endblock %}

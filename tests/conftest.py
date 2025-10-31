@@ -1,5 +1,10 @@
+import os
+from pathlib import Path
+
 import pandas as pd
 import pytest
+
+import pyspark
 
 from src.db.dataframes import (
     build_empenhos_df,
@@ -8,6 +13,10 @@ from src.db.dataframes import (
 )
 from src.db.graph_builder import build_heterogeneous_graph
 from src.common.spark_session import get_spark_session
+
+
+if not os.environ.get("SPARK_HOME"):
+    os.environ["SPARK_HOME"] = str(Path(pyspark.__file__).resolve().parent)
 
 
 @pytest.fixture(scope="session")

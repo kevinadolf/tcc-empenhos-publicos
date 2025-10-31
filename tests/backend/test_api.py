@@ -10,6 +10,7 @@ from src.common.settings import get_settings
 @pytest.fixture
 def client(monkeypatch):
     monkeypatch.setenv("ENABLE_LIVE_FETCH", "false")
+    monkeypatch.setenv("GRAPH_DATA_SOURCE", "sample")
     get_settings.cache_clear()
     from src.backend.routes import api as api_routes
 
@@ -68,3 +69,11 @@ def test_graph_summary_random_source(client):
     payload = response.get_json()
     assert payload["nodes"] > 0
     assert payload["empenhos"] > 0
+
+
+def test_fetch_status_endpoint(client):
+    response = client.get("/api/graph/fetch/status")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert "status" in data
+    assert "progress" in data

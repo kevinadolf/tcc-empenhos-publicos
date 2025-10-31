@@ -7,7 +7,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import date
-from typing import Dict, Optional, Sequence
+from typing import Callable, Dict, Optional, Sequence
 
 import pandas as pd
 
@@ -19,6 +19,8 @@ from src.db.dataframes import (
 )
 from src.db.graph_builder import build_heterogeneous_graph
 from src.db.sources.tce_client import TCEClientConfig, TCEDataClient
+
+ProgressReporter = Callable[[float, str], None]
 
 
 @dataclass
@@ -42,25 +44,58 @@ class GraphRepository:
         )
         self.client = client or TCEDataClient(config=client_config)
 
-    def fetch_payloads(self) -> Dict[str, Sequence[Dict]]:
+    def fetch_payloads(
+        self,
+        *,
+        progress_callback: Optional[ProgressReporter] = None,
+    ) -> Dict[str, Sequence[Dict]]:
         if not self.settings.enable_live_fetch:
             raise RuntimeError(
                 "Live fetch is disabled. Set ENABLE_LIVE_FETCH=true to allow network calls.",
             )
 
-        if hasattr(self.client, "fetch_empenho_estado"):
-            records = self._fetch_empenho_estado_records()
-            limit = self.settings.tce_max_records or None
-            return self._assemble_payloads_from_empenho_estado(records, limit=limit)
+        def report(progress: float, message: str) -> None:
+            if progress_callback:
+                progress_callback(progress, message)
 
+        def scale_callback(start: float, end: float) -> ProgressReporter:
+            span = max(end - start, 0.0)
+
+            def inner(progress: float, message: str) -> None:
+                scaled = start + (max(0.0, min(100.0, progress)) / 100.0) * span
+                report(scaled, message)
+
+            return inner
+
+        report(0.0, "Iniciando coleta da API TCE-RJ")
+
+        if hasattr(self.client, "fetch_empenho_estado"):
+            report(2.0, "Coletando empenhos estaduais")
+            records = self._fetch_empenho_estado_records(
+                progress_callback=scale_callback(2.0, 75.0),
+            )
+            report(75.0, f"{len(records)} empenhos coletados")
+            limit = self.settings.tce_max_records or None
+            payload = self._assemble_payloads_from_empenho_estado(records, limit=limit)
+            report(100.0, "Coleta finalizada")
+            return payload
+
+        report(5.0, "Coletando empenhos")
         empenhos = self.client.fetch_empenhos()
+        report(35.0, f"{len(empenhos)} empenhos coletados")
+        report(40.0, "Coletando fornecedores")
         fornecedores = self.client.fetch_fornecedores()
+        report(60.0, f"{len(fornecedores)} fornecedores coletados")
+        report(65.0, "Coletando órgãos")
         orgaos = self.client.fetch_unidades_gestoras()
-        return {
+        report(75.0, f"{len(orgaos)} órgãos coletados")
+        payloads = {
             "empenhos": empenhos,
             "fornecedores": fornecedores,
             "orgaos": orgaos,
         }
+        report(100.0, "Coleta finalizada")
+        return payloads
 
     @staticmethod
     def build_graph_from_payloads(payloads: Dict[str, Sequence[Dict]]) -> GraphData:
@@ -82,24 +117,54 @@ class GraphRepository:
         )
         return graph, graph_data
 
-    def _fetch_empenho_estado_records(self) -> Sequence[Dict]:
+    def _fetch_empenho_estado_records(
+        self,
+        *,
+        progress_callback: Optional[ProgressReporter] = None,
+    ) -> Sequence[Dict]:
         years = self.settings.tce_years or ()
         records: list[Dict] = []
         max_records = self.settings.tce_max_records or None
+        total_hint: int
+        if max_records and max_records > 0:
+            total_hint = max_records
+        else:
+            max_pages = self.settings.api_max_pages or 10
+            total_hint = max(self.settings.api_page_size * max_pages, 1)
+
+        last_reported_progress = -5.0
+
+        def emit_progress(message: str) -> None:
+            nonlocal last_reported_progress
+            if not progress_callback:
+                return
+            ratio = min(len(records) / total_hint, 1.0)
+            progress = min(100.0, ratio * 100.0)
+            if progress - last_reported_progress >= 1.0 or progress >= 100.0:
+                last_reported_progress = progress
+                progress_callback(progress, message)
+
+        if progress_callback:
+            progress_callback(0.0, "Iniciando coleta de empenhos estaduais")
 
         def extend_with_limit(batch: Sequence[Dict]) -> bool:
             if max_records is None:
                 records.extend(batch)
+                emit_progress(f"Carregando empenhos (total parcial: {len(records)})")
                 return True
             remaining = max_records - len(records)
             if remaining <= 0:
                 return False
             records.extend(list(batch)[:remaining])
+            emit_progress(f"Carregando empenhos (total parcial: {len(records)})")
             return len(records) < max_records
 
         if not years:
             batch = self.client.fetch_empenho_estado()
             extend_with_limit(batch)
+            emit_progress("Registros de empenhos carregados")
+            if progress_callback:
+                progress_callback(100.0, "Empenhos estaduais coletados")
             return records
 
         for year in years:
@@ -107,6 +172,9 @@ class GraphRepository:
             should_continue = extend_with_limit(fetched)
             if not should_continue:
                 break
+        emit_progress("Registros de empenhos carregados")
+        if progress_callback:
+            progress_callback(100.0, "Empenhos estaduais coletados")
         return records
 
     @staticmethod

@@ -11,32 +11,39 @@ def reset_settings_cache():
 def test_load_payloads_uses_sample(monkeypatch):
     # Force settings to disable live fetch
     monkeypatch.setenv("ENABLE_LIVE_FETCH", "false")
+    monkeypatch.setenv("GRAPH_DATA_SOURCE", "sample")
     reset_settings_cache()
     service = GraphService()
     payloads = service.load_payloads()
     assert payloads == SAMPLE_PAYLOAD
+    reset_settings_cache()
 
 
 def test_get_graph_summary_returns_counts(monkeypatch):
     monkeypatch.setenv("ENABLE_LIVE_FETCH", "false")
+    monkeypatch.setenv("GRAPH_DATA_SOURCE", "sample")
     reset_settings_cache()
     service = GraphService()
     summary = service.get_graph_summary()
     assert summary["nodes"] > 0
     assert summary["empenhos"] == len(SAMPLE_PAYLOAD["empenhos"])
+    reset_settings_cache()
 
 
 def test_get_anomalies_has_expected_keys(monkeypatch):
     monkeypatch.setenv("ENABLE_LIVE_FETCH", "false")
+    monkeypatch.setenv("GRAPH_DATA_SOURCE", "sample")
     reset_settings_cache()
     service = GraphService()
     anomalies = service.get_anomalies()
     assert "centralidade_fornecedores" in anomalies
     assert isinstance(anomalies["centralidade_fornecedores"], list)
+    reset_settings_cache()
 
 
 def test_load_graph_with_custom_payload(monkeypatch):
     monkeypatch.setenv("ENABLE_LIVE_FETCH", "false")
+    monkeypatch.setenv("GRAPH_DATA_SOURCE", "sample")
     reset_settings_cache()
     service = GraphService()
     custom_payload = {
@@ -60,24 +67,26 @@ def test_load_graph_with_custom_payload(monkeypatch):
     }
     summary = service.get_graph_summary(payloads=custom_payload)
     assert summary["empenhos"] == 1
+    reset_settings_cache()
 
 
 def test_live_fetch_uses_cache(monkeypatch):
     monkeypatch.setenv("ENABLE_LIVE_FETCH", "true")
     monkeypatch.setenv("GRAPH_CACHE_TTL_SECONDS", "3600")
+    monkeypatch.setenv("GRAPH_DATA_SOURCE", "api")
     reset_settings_cache()
 
     calls = {"count": 0}
 
-    def fake_fetch(self):
+    def fake_fetch(self, *, progress_callback=None):
         calls["count"] += 1
         return SAMPLE_PAYLOAD
 
     monkeypatch.setattr(GraphRepository, "fetch_payloads", fake_fetch, raising=False)
 
     service = GraphService()
-    service.get_graph_summary()
-    service.get_graph_summary()
+    service.get_graph_summary(source="api")
+    service.get_graph_summary(source="api")
 
     assert calls["count"] == 1
 
@@ -87,15 +96,16 @@ def test_live_fetch_uses_cache(monkeypatch):
 def test_live_fetch_fallback_to_sample(monkeypatch):
     monkeypatch.setenv("ENABLE_LIVE_FETCH", "true")
     monkeypatch.setenv("GRAPH_CACHE_TTL_SECONDS", "0")
+    monkeypatch.setenv("GRAPH_DATA_SOURCE", "api")
     reset_settings_cache()
 
-    def boom(self):
+    def boom(self, *, progress_callback=None):
         raise RuntimeError("erro de rede")
 
     monkeypatch.setattr(GraphRepository, "fetch_payloads", boom, raising=False)
 
     service = GraphService()
-    summary = service.get_graph_summary()
+    summary = service.get_graph_summary(source="api")
 
     assert summary["empenhos"] == len(SAMPLE_PAYLOAD["empenhos"])
 

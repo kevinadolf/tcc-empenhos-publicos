@@ -14,6 +14,7 @@ def reset_settings_cache():
 
 def test_cli_summary(monkeypatch, capsys):
     monkeypatch.setenv("ENABLE_LIVE_FETCH", "false")
+    monkeypatch.setenv("GRAPH_DATA_SOURCE", "sample")
     reset_settings_cache()
 
     exit_code = cli.main(["summary"])
@@ -22,10 +23,12 @@ def test_cli_summary(monkeypatch, capsys):
     assert exit_code == 0
     data = json.loads(captured.out)
     assert data["empenhos"] == len(SAMPLE_PAYLOAD["empenhos"])
+    reset_settings_cache()
 
 
 def test_cli_anomalies_with_limit(monkeypatch, capsys):
     monkeypatch.setenv("ENABLE_LIVE_FETCH", "false")
+    monkeypatch.setenv("GRAPH_DATA_SOURCE", "sample")
     reset_settings_cache()
 
     exit_code = cli.main(["anomalies", "--limit", "1"])
@@ -34,10 +37,12 @@ def test_cli_anomalies_with_limit(monkeypatch, capsys):
     assert exit_code == 0
     data = json.loads(captured.out)
     assert all(len(items) <= 1 for items in data.values() if isinstance(items, list))
+    reset_settings_cache()
 
 
 def test_cli_export_to_files(tmp_path: Path, monkeypatch, capsys):
     monkeypatch.setenv("ENABLE_LIVE_FETCH", "false")
+    monkeypatch.setenv("GRAPH_DATA_SOURCE", "sample")
     reset_settings_cache()
 
     summary_path = tmp_path / "summary.json"
@@ -65,10 +70,12 @@ def test_cli_export_to_files(tmp_path: Path, monkeypatch, capsys):
 
     assert summary_data["fornecedores"] == len(SAMPLE_PAYLOAD["fornecedores"])
     assert "centralidade_fornecedores" in anomalies_data
+    reset_settings_cache()
 
 
 def test_cli_payload_from_file(tmp_path: Path, monkeypatch, capsys):
     monkeypatch.setenv("ENABLE_LIVE_FETCH", "false")
+    monkeypatch.setenv("GRAPH_DATA_SOURCE", "sample")
     reset_settings_cache()
 
     payload_path = tmp_path / "payload.json"
@@ -80,10 +87,12 @@ def test_cli_payload_from_file(tmp_path: Path, monkeypatch, capsys):
     assert exit_code == 0
     data = json.loads(captured.out)
     assert data["empenhos"] == len(SAMPLE_PAYLOAD["empenhos"])
+    reset_settings_cache()
 
 
 def test_cli_snapshot(tmp_path: Path, monkeypatch, capsys):
     monkeypatch.setenv("ENABLE_LIVE_FETCH", "false")
+    monkeypatch.setenv("GRAPH_DATA_SOURCE", "sample")
     reset_settings_cache()
 
     graphml_path = tmp_path / "snapshot.graphml"
@@ -104,3 +113,4 @@ def test_cli_snapshot(tmp_path: Path, monkeypatch, capsys):
     assert graphml_path.exists()
     assert json_path.exists()
     assert "Snapshot GraphML" in captured.out
+    reset_settings_cache()

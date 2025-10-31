@@ -144,9 +144,129 @@ def generate_random_payloads(
         include_contratos=include_contratos,
     )
 
+    _inject_anomaly_patterns(
+        rng=rng,
+        orgaos=orgaos,
+        fornecedores=fornecedores,
+        empenhos=empenhos,
+        include_contratos=include_contratos,
+    )
+
     return {
         "orgaos": orgaos,
         "fornecedores": fornecedores,
         "empenhos": empenhos,
     }
 
+
+def _inject_anomaly_patterns(
+    *,
+    rng: random.Random,
+    orgaos: List[Dict],
+    fornecedores: List[Dict],
+    empenhos: List[Dict],
+    include_contratos: bool,
+) -> None:
+    """Ensure synthetic graphs always have sinais fortes de anomalia."""
+
+    if not orgaos or not fornecedores:
+        return
+
+    def _next_fornecedor_id() -> str:
+        return f"F{len(fornecedores) + 1:04d}"
+
+    def _next_orgao_id() -> str:
+        return f"O{len(orgaos) + 1:03d}"
+
+    def _next_empenho_id() -> str:
+        return f"E{len(empenhos) + 1:05d}"
+
+    current_year = date.today().year
+
+    # 1. Fornecedor extremamente central conectando-se a múltiplos órgãos com valores elevados.
+    super_fornecedor_id = _next_fornecedor_id()
+    fornecedores.append(
+        {
+            "id": super_fornecedor_id,
+            "nome": "SupraMax Serviços Integrados LTDA",
+            "documento": _random_cnpj(rng),
+            "tipo_documento": "CNPJ",
+            "municipio": "Rio de Janeiro",
+            "uf": "RJ",
+        },
+    )
+
+    alvo_orgaos = orgaos[:]
+    rng.shuffle(alvo_orgaos)
+    alvo_orgaos = alvo_orgaos[: max(4, min(len(alvo_orgaos), 6))]
+
+    base_valor = round(rng.uniform(380_000, 520_000), 2)
+    for indice, orgao in enumerate(alvo_orgaos, start=1):
+        empenhos.append(
+            {
+                "id": _next_empenho_id(),
+                "numero": f"{current_year}-S{indice:03d}",
+                "descricao": "Contrato estratégico de serviços continuados",
+                "valor_empenhado": float(base_valor * rng.uniform(0.9, 1.1)),
+                "data_empenho": _random_date(rng, days_back=180),
+                "fornecedor_id": super_fornecedor_id,
+                "unidade_gestora_id": orgao["id"],
+                "contrato_id": f"CSUP-{indice:03d}" if include_contratos else None,
+            },
+        )
+
+    # 2. Comunidade compacta quase isolada (dois órgãos + um fornecedor).
+    iso_fornecedor_id = _next_fornecedor_id()
+    fornecedores.append(
+        {
+            "id": iso_fornecedor_id,
+            "nome": "Isolado Soluções Regionais ME",
+            "documento": _random_cnpj(rng),
+            "tipo_documento": "CNPJ",
+            "municipio": "Petrópolis",
+            "uf": "RJ",
+        },
+    )
+
+    iso_orgaos: List[Dict] = []
+    for idx in range(2):
+        iso_orgao = {
+            "id": _next_orgao_id(),
+            "nome": f"Autarquia Distrital {idx + 1}",
+            "sigla": f"AUD{idx + 1}",
+            "municipio": "Paraty",
+            "uf": "RJ",
+        }
+        orgaos.append(iso_orgao)
+        iso_orgaos.append(iso_orgao)
+
+    for idx, iso_orgao in enumerate(iso_orgaos, start=1):
+        empenhos.append(
+            {
+                "id": _next_empenho_id(),
+                "numero": f"{current_year}-ISO-{idx:02d}",
+                "descricao": "Programa local de manutenção extraordinária",
+                "valor_empenhado": float(round(rng.uniform(45_000, 60_000), 2)),
+                "data_empenho": _random_date(rng, days_back=90),
+                "fornecedor_id": iso_fornecedor_id,
+                "unidade_gestora_id": iso_orgao["id"],
+                "contrato_id": f"CISO-{idx:02d}" if include_contratos else None,
+            },
+        )
+
+    # 3. Elo leve opcional para o fornecedor isolado, preservando característica de isolamento.
+    outras_unidades = [org for org in orgaos if org["id"] not in {o["id"] for o in iso_orgaos}]
+    if outras_unidades:
+        orgao_extra = rng.choice(outras_unidades)
+        empenhos.append(
+            {
+                "id": _next_empenho_id(),
+                "numero": f"{current_year}-ISO-LINK",
+                "descricao": "Contrato eventual de pequeno valor",
+                "valor_empenhado": float(round(rng.uniform(8_000, 12_000), 2)),
+                "data_empenho": _random_date(rng, days_back=30),
+                "fornecedor_id": iso_fornecedor_id,
+                "unidade_gestora_id": orgao_extra["id"],
+                "contrato_id": None,
+            },
+        )

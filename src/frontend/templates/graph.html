@@ -15,15 +15,49 @@
         <option value="api">API do TCE-RJ</option>
       </select>
       <button id="fit-graph" class="button button--secondary" type="button">Ajustar Visão</button>
-      <select id="type-filter" class="select">
-        <option value="all" selected>Todos os tipos</option>
-        <option value="orgao">Órgãos</option>
-        <option value="empenho">Empenhos</option>
-        <option value="fornecedor">Fornecedores</option>
-        <option value="contrato">Contratos</option>
-      </select>
     </div>
   </header>
+
+  <section class="graph-filters" aria-label="Filtros do grafo">
+    <div class="filter-grid">
+      <div class="filter-group">
+        <h2 class="filter-title">Tipos de nó</h2>
+        <div id="filter-type-list" class="filter-checkbox-list" role="group" aria-label="Tipos de nó"></div>
+      </div>
+
+      <div class="filter-group">
+        <h2 class="filter-title">Intervalo de valor</h2>
+        <div class="filter-range">
+          <label for="filter-value-min">Mínimo</label>
+          <input type="number" id="filter-value-min" class="filter-input" inputmode="decimal" placeholder="0,00" />
+          <label for="filter-value-max">Máximo</label>
+          <input type="number" id="filter-value-max" class="filter-input" inputmode="decimal" placeholder="—" />
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <h2 class="filter-title">Busca</h2>
+        <input
+          type="search"
+          id="filter-search"
+          class="filter-input"
+          placeholder="Nome, número do empenho, documento…"
+          aria-label="Buscar por nome, número ou documento"
+        />
+      </div>
+
+      <div class="filter-group filter-group--compact">
+        <label class="filter-checkbox">
+          <input type="checkbox" id="filter-anomalies" />
+          Somente nós com anomalias
+        </label>
+        <button id="clear-filters" class="button button--secondary button--sm" type="button">
+          Limpar filtros
+        </button>
+        <span id="filter-summary" class="filter-summary" role="status" aria-live="polite"></span>
+      </div>
+    </div>
+  </section>
 
   <div class="graph-layout">
     <div class="graph-canvas" id="graph-canvas">
