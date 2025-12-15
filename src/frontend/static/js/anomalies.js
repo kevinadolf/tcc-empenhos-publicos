@@ -602,7 +602,7 @@
       state.ai.summary = payload.summary || "IA não retornou resumo.";
     } catch (error) {
       console.error("Erro ao gerar resumo IA:", error);
-      state.ai.error = "Não foi possível gerar o resumo no momento.";
+      state.ai.error = error?.message || "Não foi possível gerar o resumo no momento.";
     } finally {
       state.ai.loading = false;
       renderAISummary();
@@ -633,7 +633,7 @@
       state.ai.answer = payload.answer || "IA não retornou resposta.";
     } catch (error) {
       console.error("Erro no assistente IA:", error);
-      state.ai.answerError = "Não foi possível consultar a IA no momento.";
+      state.ai.answerError = error?.message || "Não foi possível consultar a IA no momento.";
     } finally {
       state.ai.answering = false;
       renderAIAssistant();

@@ -18,7 +18,11 @@ def _get_model():
         ) from exc
 
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel(os.getenv("GEMINI_MODEL_NAME", "gemini-pro"))
+    model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-pro")
+    try:
+        return genai.GenerativeModel(model_name)
+    except Exception as exc:  # pragma: no cover - external dependency
+        raise RuntimeError(f"Falha ao instanciar modelo '{model_name}': {exc}") from exc
 
 
 def _invoke(prompt: str, system: Optional[str] = None) -> str:

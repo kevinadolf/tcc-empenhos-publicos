@@ -98,7 +98,7 @@ def ai_summary():
     try:
         text = ai_service.summarize_anomalies(payload)
     except RuntimeError as exc:
-        abort(503, description=str(exc))
+        abort(503, description=f"IA indisponível: {exc}")
     return jsonify({"summary": text})
 
 
@@ -109,7 +109,7 @@ def ai_prioritize():
     try:
         text = ai_service.prioritize_cases(cases)
     except RuntimeError as exc:
-        abort(503, description=str(exc))
+        abort(503, description=f"IA indisponível: {exc}")
     return jsonify({"prioritized": text})
 
 
@@ -119,7 +119,7 @@ def ai_insights():
     try:
         text = ai_service.suggest_insights(context)
     except RuntimeError as exc:
-        abort(503, description=str(exc))
+        abort(503, description=f"IA indisponível: {exc}")
     return jsonify({"insights": text})
 
 
@@ -133,5 +133,5 @@ def ai_assistant():
     try:
         text = ai_service.assistant_answer(question, context=context)
     except RuntimeError as exc:
-        abort(503, description=str(exc))
+        abort(503, description=f"IA indisponível: {exc}")
     return jsonify({"answer": text})
