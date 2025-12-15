@@ -596,7 +596,8 @@
         body: JSON.stringify(state.data || {}),
       });
       if (!response.ok) {
-        throw new Error(`Status ${response.status}`);
+        const msg = await response.text();
+        throw new Error(msg || `Status ${response.status}`);
       }
       const payload = await response.json();
       state.ai.summary = payload.summary || "IA não retornou resumo.";
@@ -627,7 +628,8 @@
         body: JSON.stringify({ question, context: { anomalies: state.data } }),
       });
       if (!response.ok) {
-        throw new Error(`Status ${response.status}`);
+        const msg = await response.text();
+        throw new Error(msg || `Status ${response.status}`);
       }
       const payload = await response.json();
       state.ai.answer = payload.answer || "IA não retornou resposta.";

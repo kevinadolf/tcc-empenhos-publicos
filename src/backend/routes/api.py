@@ -99,6 +99,8 @@ def ai_summary():
         text = ai_service.summarize_anomalies(payload)
     except RuntimeError as exc:
         abort(503, description=f"IA indisponível: {exc}")
+    except Exception as exc:  # pragma: no cover - defensive
+        abort(503, description=f"Falha ao consultar IA: {exc}")
     return jsonify({"summary": text})
 
 
@@ -110,6 +112,8 @@ def ai_prioritize():
         text = ai_service.prioritize_cases(cases)
     except RuntimeError as exc:
         abort(503, description=f"IA indisponível: {exc}")
+    except Exception as exc:  # pragma: no cover
+        abort(503, description=f"Falha ao consultar IA: {exc}")
     return jsonify({"prioritized": text})
 
 
@@ -120,6 +124,8 @@ def ai_insights():
         text = ai_service.suggest_insights(context)
     except RuntimeError as exc:
         abort(503, description=f"IA indisponível: {exc}")
+    except Exception as exc:  # pragma: no cover
+        abort(503, description=f"Falha ao consultar IA: {exc}")
     return jsonify({"insights": text})
 
 
@@ -134,4 +140,6 @@ def ai_assistant():
         text = ai_service.assistant_answer(question, context=context)
     except RuntimeError as exc:
         abort(503, description=f"IA indisponível: {exc}")
+    except Exception as exc:  # pragma: no cover
+        abort(503, description=f"Falha ao consultar IA: {exc}")
     return jsonify({"answer": text})
