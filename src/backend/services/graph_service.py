@@ -242,9 +242,17 @@ class GraphService:
             else:
                 if progress_callback:
                     progress_callback(85.0, "Construindo grafo com dados do TCE-RJ")
-            with metrics.graph_build_duration.labels("api").time():
-                graph, graph_data = self.repository.load_graph(payloads=payloads, source_label="api")
-            metrics.fetch_status.labels("api").set(1)
+            try:
+                with metrics.graph_build_duration.labels("api").time():
+                    graph, graph_data = self.repository.load_graph(payloads=payloads, source_label="api")
+                metrics.fetch_status.labels("api").set(1)
+            except Exception as exc:
+                logger.error("Falha ao construir grafo com dados da API; usando sample. Erro: %s", exc)
+                metrics.fetch_failures.labels("api").inc()
+                metrics.fetch_status.labels("api").set(0)
+                if progress_callback:
+                    progress_callback(5.0, "Falha em data quality; usando payload de exemplo")
+                graph, graph_data = self.repository.load_graph(payloads=SAMPLE_PAYLOAD, source_label="sample")
             if progress_callback:
                 progress_callback(95.0, "Atualizando cache com grafo mais recente")
             return graph, graph_data, payloads
