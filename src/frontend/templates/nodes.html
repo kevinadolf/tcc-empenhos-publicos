@@ -19,7 +19,7 @@
       </select>
     </div>
   </header>
-  <div class="panel panel--stretch">
+  <div class="panel panel--stretch nodes-layout">
     <div class="panel__body">
       <div id="node-status" class="panel__status">Carregando nós…</div>
       <table id="node-table" class="table" hidden>
@@ -29,11 +29,23 @@
             <th>Nome</th>
             <th>Tipo</th>
             <th>Valor empenhado</th>
+            <th>Risco</th>
           </tr>
         </thead>
         <tbody></tbody>
       </table>
     </div>
+    <aside class="glossary">
+      <h3>Glossário rápido</h3>
+      <ul>
+        <li><strong>Empenho</strong>: compromisso de pagamento registrado pelo órgão público.</li>
+        <li><strong>Contrato</strong>: vínculo formal associado ao empenho; indica objeto e partes.</li>
+        <li><strong>Fornecedor</strong>: quem recebe o pagamento; pode ter múltiplos empenhos/órgãos.</li>
+        <li><strong>Órgão</strong>: unidade gestora que emite empenhos.</li>
+        <li><strong>Risco</strong>: score agregado das anomalias (centralidade, entropia, etc.).</li>
+      </ul>
+      <p class="glossary__tip">Dica: clique no ID para abrir o grafo focado no nó.</p>
+    </aside>
   </div>
 </section>
 {% endblock %}

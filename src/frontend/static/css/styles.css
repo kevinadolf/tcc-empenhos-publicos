@@ -533,6 +533,43 @@ body {
   color: var(--gray-700);
 }
 
+.badge-risk {
+  display: inline-block;
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+  background: rgba(255, 99, 71, 0.12);
+  color: #b91c1c;
+  font-weight: 700;
+  min-width: 44px;
+  text-align: center;
+}
+
+.nodes-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+}
+
+.glossary {
+  border-left: 1px solid var(--gray-100);
+  padding: 1rem;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.glossary h3 {
+  margin-top: 0;
+}
+
+.glossary ul {
+  padding-left: 1.2rem;
+}
+
+.glossary__tip {
+  color: var(--gray-500);
+  font-size: 0.9rem;
+}
 .anomaly-table {
   width: 100%;
   border-collapse: collapse;
