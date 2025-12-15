@@ -4,6 +4,7 @@ import os
 
 from flask import Blueprint, abort, jsonify, request
 
+from src.backend.services import ai_service
 from src.backend.services.graph_service import GraphService
 
 api_bp = Blueprint("api", __name__)
@@ -89,3 +90,48 @@ def admin_health():
             "summary": summary,
         },
     )
+
+
+@api_bp.post("/ai/summary")
+def ai_summary():
+    payload = request.get_json(silent=True) or {}
+    try:
+        text = ai_service.summarize_anomalies(payload)
+    except RuntimeError as exc:
+        abort(503, description=str(exc))
+    return jsonify({"summary": text})
+
+
+@api_bp.post("/ai/prioritize")
+def ai_prioritize():
+    payload = request.get_json(silent=True) or {}
+    cases = payload.get("cases") or []
+    try:
+        text = ai_service.prioritize_cases(cases)
+    except RuntimeError as exc:
+        abort(503, description=str(exc))
+    return jsonify({"prioritized": text})
+
+
+@api_bp.post("/ai/insights")
+def ai_insights():
+    context = request.get_json(silent=True) or {}
+    try:
+        text = ai_service.suggest_insights(context)
+    except RuntimeError as exc:
+        abort(503, description=str(exc))
+    return jsonify({"insights": text})
+
+
+@api_bp.post("/ai/assistant")
+def ai_assistant():
+    payload = request.get_json(silent=True) or {}
+    question = payload.get("question")
+    context = payload.get("context")
+    if not question:
+        abort(400, description="Campo 'question' é obrigatório.")
+    try:
+        text = ai_service.assistant_answer(question, context=context)
+    except RuntimeError as exc:
+        abort(503, description=str(exc))
+    return jsonify({"answer": text})
