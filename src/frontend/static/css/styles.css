@@ -452,6 +452,42 @@ body {
   gap: 1rem;
 }
 
+.ai-box {
+  border: 1px solid var(--gray-100);
+  border-radius: 12px;
+  padding: 1rem;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  margin-bottom: 1rem;
+}
+
+.ai-box__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.ai-box__body {
+  font-size: 0.95rem;
+  color: var(--gray-700);
+  min-height: 40px;
+}
+
+.ai-box__status {
+  color: var(--gray-500);
+  margin: 0;
+}
+
+.ai-box__error {
+  color: #b91c1c;
+  margin: 0;
+}
+
+.ai-box__content {
+  white-space: pre-wrap;
+}
+
 .anomaly-card {
   border: 1px solid var(--gray-100);
   border-radius: 12px;

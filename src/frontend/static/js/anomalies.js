@@ -33,6 +33,11 @@
     data: {},
     selection: null,
     collapsed: new Set(),
+    ai: {
+      summary: null,
+      loading: false,
+      error: null,
+    },
   };
 
   const numberFormatter = new Intl.NumberFormat("pt-BR", {
@@ -532,6 +537,52 @@
     }
   }
 
+  function renderAISummary() {
+    const target = document.getElementById("ai-summary");
+    if (!target) return;
+    if (state.ai.loading) {
+      target.innerHTML = '<p class="ai-box__status">Gerando resumo com IA…</p>';
+      return;
+    }
+    if (state.ai.error) {
+      target.innerHTML = `<p class="ai-box__error">Erro: ${state.ai.error}</p>`;
+      return;
+    }
+    if (!state.ai.summary) {
+      target.innerHTML = '<p class="ai-box__status">Clique em "Resumo IA" para gerar um sumário das anomalias.</p>';
+      return;
+    }
+    target.innerHTML = `
+      <p class="ai-box__label">Resumo gerado pela IA:</p>
+      <div class="ai-box__content">${state.ai.summary.replace(/\\n/g, "<br/>")}</div>
+    `;
+  }
+
+  async function requestAISummary() {
+    if (state.ai.loading) return;
+    state.ai.loading = true;
+    state.ai.error = null;
+    renderAISummary();
+    try {
+      const response = await fetch("/api/ai/summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(state.data || {}),
+      });
+      if (!response.ok) {
+        throw new Error(`Status ${response.status}`);
+      }
+      const payload = await response.json();
+      state.ai.summary = payload.summary || "IA não retornou resumo.";
+    } catch (error) {
+      console.error("Erro ao gerar resumo IA:", error);
+      state.ai.error = "Não foi possível gerar o resumo no momento.";
+    } finally {
+      state.ai.loading = false;
+      renderAISummary();
+    }
+  }
+
   if (elements.refresh) {
     elements.refresh.addEventListener("click", loadAnomalies);
   }
@@ -539,4 +590,10 @@
   elements.container.addEventListener("click", handleContainerClick);
 
   loadAnomalies();
+  renderAISummary();
+
+  const aiButton = document.getElementById("ai-summary-btn");
+  if (aiButton) {
+    aiButton.addEventListener("click", requestAISummary);
+  }
 })();

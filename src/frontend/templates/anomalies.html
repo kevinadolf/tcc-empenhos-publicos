@@ -16,6 +16,13 @@
     <div class="panel__body anomaly-layout">
       <div class="anomaly-list-wrapper">
         <div id="anomaly-status" class="panel__status">Carregando anomalias…</div>
+        <div class="ai-box">
+          <div class="ai-box__header">
+            <h3>Resumo IA</h3>
+            <button id="ai-summary-btn" class="button button--secondary button--xs" type="button">Gerar resumo</button>
+          </div>
+          <div id="ai-summary" class="ai-box__body"></div>
+        </div>
         <div id="anomaly-content" class="anomaly-list" hidden></div>
       </div>
       <aside class="anomaly-visualizer" id="anomaly-visualizer">
