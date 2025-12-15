@@ -104,3 +104,14 @@ def test_enrich_metadata_in_payloads(sample_payloads):
     assert "payload_hash" in graph_data.empenhos.columns
     assert set(graph_data.empenhos["fonte_origem"].unique()) == {"manual"}
     assert graph_data.empenhos["payload_hash"].notna().all()
+
+
+def test_quality_checks_duplicate_ids(sample_payloads):
+    settings = Settings(enable_live_fetch=False)
+    repo = GraphRepository(settings=settings, client=None)
+    duplicated = dict(sample_payloads)
+    dup_empenho = dict(sample_payloads["empenhos"][0])
+    duplicated["empenhos"] = [sample_payloads["empenhos"][0], dup_empenho]
+
+    with pytest.raises(ValueError):
+        repo.load_graph(payloads=duplicated, source_label="manual")

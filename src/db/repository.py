@@ -124,6 +124,7 @@ class GraphRepository:
             source_label = source_label or "manual"
 
         validated = self._validate_payloads(payloads)
+        self._quality_checks(validated)
         enriched = self._enrich_payload_metadata(validated, source_label)
         graph_data = self.build_graph_from_payloads(enriched)
         graph = build_heterogeneous_graph(
@@ -258,6 +259,31 @@ class GraphRepository:
             "fornecedores": [_with_meta(item) for item in payloads.get("fornecedores", [])],
             "orgaos": [_with_meta(item) for item in payloads.get("orgaos", [])],
         }
+
+    def _quality_checks(self, payloads: Dict[str, Sequence[Dict]]) -> None:
+        empenhos = payloads.get("empenhos") or []
+        fornecedores = payloads.get("fornecedores") or []
+        orgaos = payloads.get("orgaos") or []
+
+        issues: list[str] = []
+
+        def _dup_ids(items: Sequence[Dict], kind: str) -> None:
+            ids = [item.get("id") for item in items if item.get("id")]
+            if len(ids) != len(set(ids)):
+                issues.append(f"IDs duplicados detectados em {kind}")
+
+        _dup_ids(empenhos, "empenhos")
+        _dup_ids(fornecedores, "fornecedores")
+        _dup_ids(orgaos, "orgaos")
+
+        negative = [item for item in empenhos if float(item.get("valor_empenhado", 0)) < 0]
+        if negative:
+            issues.append(f"{len(negative)} empenhos com valor negativo")
+
+        if issues:
+            summary = "; ".join(issues)
+            logger.error("Falha em data quality: %s", summary)
+            raise ValueError(f"Falha em data quality: {summary}")
 
     @staticmethod
     def _parse_float(value) -> float:
