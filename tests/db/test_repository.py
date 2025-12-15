@@ -113,5 +113,5 @@ def test_quality_checks_duplicate_ids(sample_payloads):
     dup_empenho = dict(sample_payloads["empenhos"][0])
     duplicated["empenhos"] = [sample_payloads["empenhos"][0], dup_empenho]
 
-    with pytest.raises(ValueError):
-        repo.load_graph(payloads=duplicated, source_label="manual")
+    graph, graph_data = repo.load_graph(payloads=duplicated, source_label="manual")
+    assert len(graph_data.empenhos) == 3  # duplicado removido

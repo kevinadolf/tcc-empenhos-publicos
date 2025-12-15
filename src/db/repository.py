@@ -124,8 +124,8 @@ class GraphRepository:
             source_label = source_label or "manual"
 
         validated = self._validate_payloads(payloads)
-        self._quality_checks(validated)
-        enriched = self._enrich_payload_metadata(validated, source_label)
+        cleaned = self._quality_checks(validated)
+        enriched = self._enrich_payload_metadata(cleaned, source_label)
         graph_data = self.build_graph_from_payloads(enriched)
         graph = build_heterogeneous_graph(
             graph_data.empenhos,
@@ -260,30 +260,49 @@ class GraphRepository:
             "orgaos": [_with_meta(item) for item in payloads.get("orgaos", [])],
         }
 
-    def _quality_checks(self, payloads: Dict[str, Sequence[Dict]]) -> None:
-        empenhos = payloads.get("empenhos") or []
-        fornecedores = payloads.get("fornecedores") or []
-        orgaos = payloads.get("orgaos") or []
-
+    def _quality_checks(self, payloads: Dict[str, Sequence[Dict]]) -> Dict[str, Sequence[Dict]]:
         issues: list[str] = []
 
-        def _dup_ids(items: Sequence[Dict], kind: str) -> None:
-            ids = [item.get("id") for item in items if item.get("id")]
-            if len(ids) != len(set(ids)):
-                issues.append(f"IDs duplicados detectados em {kind}")
+        def _dedup(items: Sequence[Dict], kind: str) -> list[Dict]:
+            seen = set()
+            uniques = []
+            dup_count = 0
+            for item in items:
+                item_id = item.get("id")
+                if item_id in seen:
+                    dup_count += 1
+                    continue
+                seen.add(item_id)
+                uniques.append(item)
+            if dup_count:
+                issues.append(f"{dup_count} duplicados removidos em {kind}")
+            return uniques
 
-        _dup_ids(empenhos, "empenhos")
-        _dup_ids(fornecedores, "fornecedores")
-        _dup_ids(orgaos, "orgaos")
+        def _drop_negative(items: Sequence[Dict]) -> list[Dict]:
+            cleaned = []
+            dropped = 0
+            for item in items:
+                valor = float(item.get("valor_empenhado", 0) or 0)
+                if valor < 0:
+                    dropped += 1
+                    continue
+                cleaned.append(item)
+            if dropped:
+                issues.append(f"{dropped} empenhos com valor negativo removidos")
+            return cleaned
 
-        negative = [item for item in empenhos if float(item.get("valor_empenhado", 0)) < 0]
-        if negative:
-            issues.append(f"{len(negative)} empenhos com valor negativo")
+        empenhos = _drop_negative(_dedup(payloads.get("empenhos") or [], "empenhos"))
+        fornecedores = _dedup(payloads.get("fornecedores") or [], "fornecedores")
+        orgaos = _dedup(payloads.get("orgaos") or [], "orgaos")
 
         if issues:
-            summary = "; ".join(issues)
-            logger.error("Falha em data quality: %s", summary)
-            raise ValueError(f"Falha em data quality: {summary}")
+            logger.warning("Data quality: %s", "; ".join(issues))
+
+        return {
+            "empenhos": empenhos,
+            "fornecedores": fornecedores,
+            "orgaos": orgaos,
+        }
 
     @staticmethod
     def _parse_float(value) -> float:
