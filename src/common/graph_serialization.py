@@ -19,7 +19,8 @@ def normalize_node_id(node: Any) -> str:
 
 
 def _collect_nodes(graph: SparkGraph) -> List[Dict[str, Any]]:
-    rows = graph.vertices.select(
+    available_cols = set(graph.vertices.columns)
+    select_cols = [
         "id",
         "node_type",
         "original_id",
@@ -33,10 +34,11 @@ def _collect_nodes(graph: SparkGraph) -> List[Dict[str, Any]]:
         "descricao",
         "valor",
         "data",
-        "fonte_origem",
-        "data_ingestao",
-        "payload_hash",
-    ).toLocalIterator()
+    ]
+    optional_cols = ["fonte_origem", "data_ingestao", "payload_hash"]
+    select_cols.extend([col for col in optional_cols if col in available_cols])
+
+    rows = graph.vertices.select(*select_cols).toLocalIterator()
 
     nodes: List[Dict[str, Any]] = []
     for row in rows:

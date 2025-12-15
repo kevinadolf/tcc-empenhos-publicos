@@ -33,6 +33,9 @@ VERTEX_COLUMNS = [
     "descricao",
     "valor",
     "data",
+    "fonte_origem",
+    "data_ingestao",
+    "payload_hash",
 ]
 
 VERTEX_SCHEMA = T.StructType(
@@ -50,6 +53,9 @@ VERTEX_SCHEMA = T.StructType(
         T.StructField("descricao", T.StringType(), True),
         T.StructField("valor", T.DoubleType(), True),
         T.StructField("data", T.StringType(), True),
+        T.StructField("fonte_origem", T.StringType(), True),
+        T.StructField("data_ingestao", T.StringType(), True),
+        T.StructField("payload_hash", T.StringType(), True),
     ],
 )
 
@@ -90,6 +96,9 @@ def _prepare_empenho_vertices(empenhos_df: pd.DataFrame) -> pd.DataFrame:
     df["valor"] = _sanitize_float(df.get("valor_empenhado", 0.0))
     df["data"] = _sanitize_timestamp(df.get("data_empenho")).dt.strftime("%Y-%m-%dT%H:%M:%S")
     df["data"] = df["data"].fillna(pd.NA)
+    df["fonte_origem"] = df.get("fonte_origem")
+    df["data_ingestao"] = df.get("data_ingestao")
+    df["payload_hash"] = df.get("payload_hash")
     return df[VERTEX_COLUMNS]
 
 
@@ -111,6 +120,9 @@ def _prepare_fornecedor_vertices(fornecedores_df: pd.DataFrame) -> pd.DataFrame:
     df["descricao"] = None
     df["valor"] = None
     df["data"] = None
+    df["fonte_origem"] = df.get("fonte_origem")
+    df["data_ingestao"] = df.get("data_ingestao")
+    df["payload_hash"] = df.get("payload_hash")
     return df[VERTEX_COLUMNS]
 
 
@@ -132,6 +144,9 @@ def _prepare_orgao_vertices(orgaos_df: pd.DataFrame) -> pd.DataFrame:
     df["descricao"] = None
     df["valor"] = None
     df["data"] = None
+    df["fonte_origem"] = df.get("fonte_origem")
+    df["data_ingestao"] = df.get("data_ingestao")
+    df["payload_hash"] = df.get("payload_hash")
     return df[VERTEX_COLUMNS]
 
 
@@ -156,6 +171,9 @@ def _prepare_contrato_vertices(empenhos_df: pd.DataFrame) -> pd.DataFrame:
     contratos["descricao"] = None
     contratos["valor"] = None
     contratos["data"] = None
+    contratos["fonte_origem"] = None
+    contratos["data_ingestao"] = None
+    contratos["payload_hash"] = None
     return contratos[VERTEX_COLUMNS]
 
 
