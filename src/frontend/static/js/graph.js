@@ -89,6 +89,87 @@
     },
   };
 
+  const FIELD_LABELS = {
+    original_id: "ID original",
+    descricao: "Descrição",
+    numero: "Número",
+    valor: "Valor",
+    valor_empenhado: "Valor empenhado",
+    data: "Data",
+    data_empenho: "Data do empenho",
+    documento: "Documento",
+    tipo_documento: "Tipo de documento",
+    fonte_origem: "Fonte",
+    data_ingestao: "Ingestão (UTC)",
+    payload_hash: "Hash",
+    municipio: "Município",
+    uf: "UF",
+    sigla: "Sigla",
+  };
+
+  const FIELD_HINTS = {
+    fonte_origem: "Origem dos dados (api/sample/random/manual).",
+    data_ingestao: "Momento em que o payload foi processado (UTC).",
+    payload_hash: "Identificador do payload original (uso interno).",
+    valor: "Valor associado ao nó (se aplicável).",
+    valor_empenhado: "Valor empenhado no registro.",
+  };
+
+  function maskDocument(value) {
+    if (!value) return value;
+    const digits = String(value).replace(/\\D/g, "");
+    if (digits.length === 11) {
+      return `***.${digits.slice(3, 6)}.***-${digits.slice(-2)}`;
+    }
+    if (digits.length === 14) {
+      return `**.${digits.slice(2, 5)}.***/*${digits.slice(8, 12)}-${digits.slice(-2)}`;
+    }
+    if (digits.length >= 4) {
+      return `${"*".repeat(digits.length - 4)}${digits.slice(-4)}`;
+    }
+    return "***";
+  }
+
+  function formatDate(value) {
+    if (!value) return "—";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return String(value);
+    }
+    return parsed.toLocaleString("pt-BR", { timeZone: "UTC" });
+  }
+
+  function formatAttributeValue(key, value) {
+    if (value === null || value === undefined || value === "") {
+      return "—";
+    }
+    if (key === "documento") {
+      return maskDocument(String(value));
+    }
+    if (key === "data_ingestao" || key === "data" || key === "data_empenho") {
+      return formatDate(value);
+    }
+    if (key === "valor" || key === "valor_empenhado") {
+      return numberFormatter.format(Number(value));
+    }
+    return Array.isArray(value) ? value.join(" / ") : String(value);
+  }
+
+  function renderAttributes(node) {
+    const entries = Object.keys(FIELD_LABELS).filter((key) => Object.prototype.hasOwnProperty.call(node, key));
+    if (!entries.length) {
+      return "<tr><td>Sem atributos adicionais.</td></tr>";
+    }
+    return entries
+      .map((key) => {
+        const label = FIELD_LABELS[key] || key;
+        const hint = FIELD_HINTS[key] || "";
+        const value = formatAttributeValue(key, node[key]);
+        return `<tr><th title="${hint}">${label}</th><td>${value}</td></tr>`;
+      })
+      .join("");
+  }
+
   let searchDebounceHandle = null;
 
   function typeLabel(type) {
@@ -826,35 +907,27 @@
       .join("");
 
     const attributes = Object.entries(node)
-      .filter(([key]) => !["index", "vx", "vy", "x", "y", "label", "layoutX", "layoutY", "isAnomalous", "anomalyReasons", "anomalySeverity"].includes(key))
-      .map(([key, value]) => {
-        if (value === null || value === undefined || value === "") {
-          return null;
-        }
-        if (typeof value === "number") {
-          return `<tr><th>${key}</th><td>${numberFormatter.format(value)}</td></tr>`;
-        }
-        if (Array.isArray(value)) {
-          return `<tr><th>${key}</th><td>${value.join(" / ")}</td></tr>`;
-        }
-        if (typeof value === "object") {
-          return `<tr><th>${key}</th><td>${JSON.stringify(value)}</td></tr>`;
-        }
-        return `<tr><th>${key}</th><td>${value}</td></tr>`;
-      })
-      .filter(Boolean)
-      .join("");
+      .filter(([key]) => !["index", "vx", "vy", "x", "y", "label", "layoutX", "layoutY", "isAnomalous", "anomalyReasons", "anomalySeverity"].includes(key));
+
+    const metaInfo = [];
+    if (node.fonte_origem) {
+      metaInfo.push(`Fonte: ${node.fonte_origem}`);
+    }
+    if (node.data_ingestao) {
+      metaInfo.push(`Ingestão: ${formatDate(node.data_ingestao)}`);
+    }
 
     elements.sidebar.innerHTML = `
       <article class="sidebar-card">
         <header>
           <h3>${node.label}</h3>
           <p class="badge-type">${typeLabel(node.type)}</p>
+          ${metaInfo.length ? `<p class="sidebar-meta">${metaInfo.join(" · ")}</p>` : ""}
         </header>
         ${renderAnomalySection(node)}
         <section>
           <h4>Atributos</h4>
-          <table>${attributes || "<tr><td>Sem atributos adicionais.</td></tr>"}</table>
+          <table>${renderAttributes(node)}</table>
         </section>
         <section>
           <h4>Conexões</h4>

@@ -373,6 +373,12 @@ body {
   font-size: 0.9rem;
 }
 
+.sidebar-meta {
+  margin: 0.2rem 0 0;
+  color: var(--gray-500);
+  font-size: 0.85rem;
+}
+
 .legend {
   border-top: 1px solid var(--gray-100);
   padding-top: 1rem;
