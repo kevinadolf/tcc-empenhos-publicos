@@ -11,3 +11,4 @@ pytest-cov==4.1.0
 pyspark==3.4.1
 graphframes
 pydantic==2.6.4
+prometheus-client==0.20.0

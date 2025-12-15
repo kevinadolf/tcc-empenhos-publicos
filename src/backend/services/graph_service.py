@@ -11,6 +11,7 @@ from typing import Any, Callable, Dict, Optional, Tuple, cast
 
 from src.analysis.pipeline import analyze_graph
 from src.analysis.scoring import compute_node_risk
+from src.backend import metrics
 from src.backend.services.random_payloads import generate_random_payloads
 from src.backend.services.sample_data import SAMPLE_PAYLOAD
 from src.common.graph_serialization import iter_node_summaries, to_node_link_data
@@ -192,7 +193,8 @@ class GraphService:
         force_refresh: bool = False,
     ) -> Tuple[SparkGraph, GraphData, Dict]:
         def loader() -> Tuple[SparkGraph, GraphData, Dict]:
-            graph, graph_data = self.repository.load_graph(payloads=SAMPLE_PAYLOAD, source_label="sample")
+            with metrics.graph_build_duration.labels("sample").time():
+                graph, graph_data = self.repository.load_graph(payloads=SAMPLE_PAYLOAD, source_label="sample")
             return graph, graph_data, SAMPLE_PAYLOAD
 
         return self._with_cache("sample", loader, force_refresh=force_refresh)
@@ -204,7 +206,8 @@ class GraphService:
     ) -> Tuple[SparkGraph, GraphData, Dict]:
         def loader() -> Tuple[SparkGraph, GraphData, Dict]:
             payloads = generate_random_payloads()
-            graph, graph_data = self.repository.load_graph(payloads=payloads, source_label="random")
+            with metrics.graph_build_duration.labels("random").time():
+                graph, graph_data = self.repository.load_graph(payloads=payloads, source_label="random")
             return graph, graph_data, payloads
 
         return self._with_cache("random", loader, force_refresh=force_refresh)
@@ -233,11 +236,15 @@ class GraphService:
                     "Falha ao coletar dados em tempo real; usando payload de exemplo. Erro: %s",
                     exc,
                 )
+                metrics.fetch_failures.labels("api").inc()
+                metrics.fetch_status.labels("api").set(0)
                 payloads = SAMPLE_PAYLOAD
             else:
                 if progress_callback:
                     progress_callback(85.0, "Construindo grafo com dados do TCE-RJ")
-            graph, graph_data = self.repository.load_graph(payloads=payloads, source_label="api")
+            with metrics.graph_build_duration.labels("api").time():
+                graph, graph_data = self.repository.load_graph(payloads=payloads, source_label="api")
+            metrics.fetch_status.labels("api").set(1)
             if progress_callback:
                 progress_callback(95.0, "Atualizando cache com grafo mais recente")
             return graph, graph_data, payloads
@@ -379,7 +386,12 @@ class GraphService:
     ) -> Dict:
         graph, _ = self.load_graph(payloads=payloads, source=source)
         report = analyze_graph(graph)
-        return report.as_dict()
+        anomalies = report.as_dict()
+        for detector, items in anomalies.items():
+            for item in items or []:
+                severity = str(item.get("severity") or "media").lower()
+                metrics.anomalies_detected.labels(detector=detector, severity=severity).inc()
+        return anomalies
 
     def get_risk_scores(
         self,
