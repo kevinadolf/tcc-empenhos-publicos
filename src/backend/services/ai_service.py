@@ -18,7 +18,8 @@ def _get_model():
         ) from exc
 
     genai.configure(api_key=api_key)
-    model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-pro")
+    raw_name = os.getenv("GEMINI_MODEL_NAME", "gemini-pro").strip()
+    model_name = raw_name if raw_name.startswith("models/") else f"models/{raw_name}"
     try:
         return genai.GenerativeModel(model_name)
     except Exception as exc:  # pragma: no cover - external dependency
