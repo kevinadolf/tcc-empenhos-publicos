@@ -1,6 +1,43 @@
-.github
-.pytest_cache
-.venv
-LICENSE
-docker-compose.yml
-Dockerfile
+# Environments
+.venv/
+venv/
+env/
+.env
+.env.local
+
+# Python bytecode & build artefacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.pytype/
+*.egg-info/
+.eggs/
+dist/
+build/
+pip-wheel-metadata/
+
+# Coverage and test outputs
+.coverage
+coverage.xml
+htmlcov/
+
+# Tooling/IDE
+.idea/
+.vscode/
+.DS_Store
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Local data/outputs
+graph.json
+out.graphml
+*.graphml
+*.jsonl
+*.log
