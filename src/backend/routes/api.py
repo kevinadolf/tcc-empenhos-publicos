@@ -41,3 +41,9 @@ def graph_fetch_status():
 def anomalies():
     data = service.get_anomalies(source=request.args.get("source"))
     return jsonify(data)
+
+
+@api_bp.get("/risk")
+def risk_scores():
+    data = service.get_risk_scores(source=request.args.get("source"))
+    return jsonify(data)

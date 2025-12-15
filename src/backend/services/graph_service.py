@@ -10,6 +10,7 @@ from threading import Event, Lock, Thread
 from typing import Any, Callable, Dict, Optional, Tuple, cast
 
 from src.analysis.pipeline import analyze_graph
+from src.analysis.scoring import compute_node_risk
 from src.backend.services.random_payloads import generate_random_payloads
 from src.backend.services.sample_data import SAMPLE_PAYLOAD
 from src.common.graph_serialization import iter_node_summaries, to_node_link_data
@@ -379,6 +380,15 @@ class GraphService:
         graph, _ = self.load_graph(payloads=payloads, source=source)
         report = analyze_graph(graph)
         return report.as_dict()
+
+    def get_risk_scores(
+        self,
+        payloads: Optional[Dict] = None,
+        *,
+        source: Optional[str] = None,
+    ) -> Dict[str, Dict[str, float]]:
+        anomalies = self.get_anomalies(payloads=payloads, source=source)
+        return compute_node_risk(anomalies)
 
     def get_graph_snapshot(
         self,
