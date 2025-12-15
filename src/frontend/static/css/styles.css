@@ -468,6 +468,23 @@ body {
   margin-bottom: 0.5rem;
 }
 
+.ai-inline-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ai-assistant {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ai-assistant__input {
+  width: 100%;
+}
+
 .ai-box__body {
   font-size: 0.95rem;
   color: var(--gray-700);

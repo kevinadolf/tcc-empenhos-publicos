@@ -15,13 +15,25 @@
   <div class="panel" id="anomalies-panel">
     <div class="panel__body anomaly-layout">
       <div class="anomaly-list-wrapper">
-        <div id="anomaly-status" class="panel__status">Carregando anomalias…</div>
-        <div class="ai-box">
-          <div class="ai-box__header">
-            <h3>Resumo IA</h3>
-            <button id="ai-summary-btn" class="button button--secondary button--xs" type="button">Gerar resumo</button>
+        <div class="ai-inline-actions">
+          <div class="ai-box">
+            <div class="ai-box__header">
+              <h3>Resumo IA</h3>
+              <button id="ai-summary-btn" class="button button--secondary button--xs" type="button">Gerar resumo</button>
+            </div>
+            <div id="anomaly-status" class="panel__status">Carregando anomalias…</div>
+            <div id="ai-summary" class="ai-box__body"></div>
           </div>
-          <div id="ai-summary" class="ai-box__body"></div>
+          <div class="ai-box">
+            <div class="ai-box__header">
+              <h3>Assistente</h3>
+            </div>
+            <div class="ai-assistant">
+              <input id="ai-question" class="input ai-assistant__input" type="text" placeholder="Pergunte algo: o que é empenho? como priorizar anomalias?" />
+              <button id="ai-ask-btn" class="button button--secondary button--xs" type="button">Perguntar</button>
+              <div id="ai-answer" class="ai-box__body"></div>
+            </div>
+          </div>
         </div>
         <div id="anomaly-content" class="anomaly-list" hidden></div>
       </div>

@@ -7,6 +7,11 @@
     selectionLabel: document.getElementById("anomaly-selection-label"),
     graph: document.getElementById("anomaly-graph"),
     details: document.getElementById("anomaly-details"),
+    aiSummary: document.getElementById("ai-summary"),
+    aiSummaryBtn: document.getElementById("ai-summary-btn"),
+    aiQuestion: document.getElementById("ai-question"),
+    aiAskBtn: document.getElementById("ai-ask-btn"),
+    aiAnswer: document.getElementById("ai-answer"),
   };
 
   if (!elements.status || !elements.container || !elements.graph) {
@@ -37,6 +42,9 @@
       summary: null,
       loading: false,
       error: null,
+      answering: false,
+      answerError: null,
+      answer: null,
     },
   };
 
@@ -538,7 +546,7 @@
   }
 
   function renderAISummary() {
-    const target = document.getElementById("ai-summary");
+    const target = elements.aiSummary;
     if (!target) return;
     if (state.ai.loading) {
       target.innerHTML = '<p class="ai-box__status">Gerando resumo com IA…</p>';
@@ -556,6 +564,24 @@
       <p class="ai-box__label">Resumo gerado pela IA:</p>
       <div class="ai-box__content">${state.ai.summary.replace(/\\n/g, "<br/>")}</div>
     `;
+  }
+
+  function renderAIAssistant() {
+    const target = elements.aiAnswer;
+    if (!target) return;
+    if (state.ai.answering) {
+      target.innerHTML = '<p class="ai-box__status">Consultando a IA…</p>';
+      return;
+    }
+    if (state.ai.answerError) {
+      target.innerHTML = `<p class="ai-box__error">Erro: ${state.ai.answerError}</p>`;
+      return;
+    }
+    if (!state.ai.answer) {
+      target.innerHTML = '<p class="ai-box__status">Faça uma pergunta para o assistente.</p>';
+      return;
+    }
+    target.innerHTML = `<div class="ai-box__content">${state.ai.answer.replace(/\\n/g, "<br/>")}</div>`;
   }
 
   async function requestAISummary() {
@@ -583,6 +609,37 @@
     }
   }
 
+  async function requestAIAssistant() {
+    if (state.ai.answering) return;
+    const question = elements.aiQuestion?.value?.trim();
+    if (!question) {
+      state.ai.answerError = "Digite uma pergunta.";
+      renderAIAssistant();
+      return;
+    }
+    state.ai.answering = true;
+    state.ai.answerError = null;
+    renderAIAssistant();
+    try {
+      const response = await fetch("/api/ai/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, context: { anomalies: state.data } }),
+      });
+      if (!response.ok) {
+        throw new Error(`Status ${response.status}`);
+      }
+      const payload = await response.json();
+      state.ai.answer = payload.answer || "IA não retornou resposta.";
+    } catch (error) {
+      console.error("Erro no assistente IA:", error);
+      state.ai.answerError = "Não foi possível consultar a IA no momento.";
+    } finally {
+      state.ai.answering = false;
+      renderAIAssistant();
+    }
+  }
+
   if (elements.refresh) {
     elements.refresh.addEventListener("click", loadAnomalies);
   }
@@ -591,9 +648,12 @@
 
   loadAnomalies();
   renderAISummary();
+  renderAIAssistant();
 
-  const aiButton = document.getElementById("ai-summary-btn");
-  if (aiButton) {
-    aiButton.addEventListener("click", requestAISummary);
+  if (elements.aiSummaryBtn) {
+    elements.aiSummaryBtn.addEventListener("click", requestAISummary);
+  }
+  if (elements.aiAskBtn) {
+    elements.aiAskBtn.addEventListener("click", requestAIAssistant);
   }
 })();
