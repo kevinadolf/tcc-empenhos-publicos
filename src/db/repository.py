@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -10,6 +11,8 @@ from datetime import date
 from typing import Callable, Dict, Optional, Sequence
 
 import pandas as pd
+
+from pydantic import ValidationError, parse_obj_as
 
 from src.common.settings import Settings, get_settings
 from src.db.dataframes import (
@@ -19,6 +22,9 @@ from src.db.dataframes import (
 )
 from src.db.graph_builder import build_heterogeneous_graph
 from src.db.sources.tce_client import TCEClientConfig, TCEDataClient
+from src.db.schemas import EmpenhoPayload, FornecedorPayload, OrgaoPayload
+
+logger = logging.getLogger(__name__)
 
 ProgressReporter = Callable[[float, str], None]
 
@@ -108,7 +114,8 @@ class GraphRepository:
         if payloads is None:
             payloads = self.fetch_payloads()
 
-        graph_data = self.build_graph_from_payloads(payloads)
+        validated = self._validate_payloads(payloads)
+        graph_data = self.build_graph_from_payloads(validated)
         graph = build_heterogeneous_graph(
             graph_data.empenhos,
             fornecedores_df=graph_data.fornecedores,
@@ -199,6 +206,21 @@ class GraphRepository:
         slug = GraphRepository._slugify(payload)
         base = slug if slug else "registro"
         return f"{prefix}-{base}-{digest}"
+
+    def _validate_payloads(self, payloads: Dict[str, Sequence[Dict]]) -> Dict[str, Sequence[Dict]]:
+        try:
+            empenhos = parse_obj_as(list[EmpenhoPayload], payloads.get("empenhos", []))
+            fornecedores = parse_obj_as(list[FornecedorPayload], payloads.get("fornecedores", []))
+            orgaos = parse_obj_as(list[OrgaoPayload], payloads.get("orgaos", []))
+        except ValidationError as exc:
+            logger.error("Falha na validação dos payloads do TCE: %s", exc)
+            raise
+
+        return {
+            "empenhos": [item.model_dump() for item in empenhos],
+            "fornecedores": [item.model_dump() for item in fornecedores],
+            "orgaos": [item.model_dump() for item in orgaos],
+        }
 
     @staticmethod
     def _parse_float(value) -> float:

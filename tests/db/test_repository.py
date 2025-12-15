@@ -1,5 +1,7 @@
 import pytest
 
+from pydantic import ValidationError
+
 from src.common.settings import Settings, get_settings
 from src.db.repository import GraphRepository
 
@@ -82,3 +84,11 @@ def test_fetch_payloads_empenho_estado(monkeypatch):
     fornecedor = payloads["fornecedores"][0]
     assert fornecedor["documento"] == "12345678000199"
     assert fornecedor["nome"] == "12345678000199"
+
+
+def test_validate_payloads_invalid(monkeypatch):
+    settings = Settings(enable_live_fetch=False)
+    repo = GraphRepository(settings=settings, client=None)
+    bad_payload = {"empenhos": [{"numero": "123"}]}  # falta ID obrigatório
+    with pytest.raises(ValidationError):
+        repo.load_graph(payloads=bad_payload)
