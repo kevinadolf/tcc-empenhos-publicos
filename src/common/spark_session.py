@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import atexit
+import os
 from pathlib import Path
 from threading import Lock
 from typing import Optional
@@ -46,12 +47,16 @@ def get_spark_session(app_name: str = "TCCGraphAnalytics") -> SparkSession:
 
     with _SESSION_LOCK:
         if _SESSION is None:
+            os.environ.setdefault("SPARK_LOCAL_IP", "127.0.0.1")
+            os.environ.setdefault("PYSPARK_SUBMIT_ARGS", "--master local[*] pyspark-shell")
             builder = (
                 SparkSession.builder.appName(app_name)
                 .master("local[*]")
                 .config("spark.sql.shuffle.partitions", "8")
                 .config("spark.sql.adaptive.enabled", "true")
                 .config("spark.driver.host", "127.0.0.1")
+                .config("spark.driver.bindAddress", "127.0.0.1")
+                .config("spark.ui.enabled", "false")
             )
             session = builder.getOrCreate()
             session.sparkContext.setLogLevel("WARN")

@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 import pytest
@@ -15,8 +16,34 @@ from src.db.graph_builder import build_heterogeneous_graph
 from src.common.spark_session import get_spark_session
 
 
+SPARK_ERROR: Optional[Exception] = None
+
 if not os.environ.get("SPARK_HOME"):
     os.environ["SPARK_HOME"] = str(Path(pyspark.__file__).resolve().parent)
+os.environ.setdefault("SPARK_LOCAL_IP", "127.0.0.1")
+os.environ.setdefault("PYSPARK_SUBMIT_ARGS", "--master local[*] pyspark-shell")
+
+
+def _spark_available() -> bool:
+    global SPARK_ERROR
+    try:
+        session = get_spark_session("TCCPytests")
+        session.stop()
+        return True
+    except Exception as exc:  # pragma: no cover - defensive
+        SPARK_ERROR = exc
+        return False
+
+
+SPARK_OK = _spark_available()
+
+
+def pytest_collection_modifyitems(config, items):
+    if SPARK_OK:
+        return
+    skip_marker = pytest.mark.skip(reason=f"Spark indisponível no ambiente de teste: {SPARK_ERROR}")
+    for item in items:
+        item.add_marker(skip_marker)
 
 
 @pytest.fixture(scope="session")

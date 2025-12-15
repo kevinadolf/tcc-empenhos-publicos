@@ -9,7 +9,7 @@ from src.db.dataframes import (
 
 def test_build_empenhos_df_maps_columns(sample_payloads):
     df = build_empenhos_df(sample_payloads["empenhos"])
-    assert list(df.columns) == [
+    expected = {
         "empenho_id",
         "numero_empenho",
         "descricao",
@@ -18,7 +18,11 @@ def test_build_empenhos_df_maps_columns(sample_payloads):
         "fornecedor_id",
         "orgao_id",
         "contrato_id",
-    ]
+        "fonte_origem",
+        "data_ingestao",
+        "payload_hash",
+    }
+    assert expected.issubset(set(df.columns))
     assert df.iloc[0]["empenho_id"] == "E1"
 
 
