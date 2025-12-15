@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import re
 import unicodedata
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Callable, Dict, Optional, Sequence
 
 import pandas as pd
@@ -110,12 +111,21 @@ class GraphRepository:
         orgaos_df = build_orgaos_df(payloads.get("orgaos", []))
         return GraphData(empenhos_df, fornecedores_df, orgaos_df)
 
-    def load_graph(self, payloads: Optional[Dict[str, Sequence[Dict]]] = None):
+    def load_graph(
+        self,
+        payloads: Optional[Dict[str, Sequence[Dict]]] = None,
+        *,
+        source_label: Optional[str] = None,
+    ):
         if payloads is None:
             payloads = self.fetch_payloads()
+            source_label = source_label or ("api" if self.settings.enable_live_fetch else "sample")
+        else:
+            source_label = source_label or "manual"
 
         validated = self._validate_payloads(payloads)
-        graph_data = self.build_graph_from_payloads(validated)
+        enriched = self._enrich_payload_metadata(validated, source_label)
+        graph_data = self.build_graph_from_payloads(enriched)
         graph = build_heterogeneous_graph(
             graph_data.empenhos,
             fornecedores_df=graph_data.fornecedores,
@@ -220,6 +230,33 @@ class GraphRepository:
             "empenhos": [item.model_dump() for item in empenhos],
             "fornecedores": [item.model_dump() for item in fornecedores],
             "orgaos": [item.model_dump() for item in orgaos],
+        }
+
+    def _enrich_payload_metadata(
+        self,
+        payloads: Dict[str, Sequence[Dict]],
+        source_label: str,
+    ) -> Dict[str, Sequence[Dict]]:
+        timestamp = datetime.utcnow().isoformat()
+        payload_hash = hashlib.sha256(
+            json.dumps(payloads, sort_keys=True, default=str).encode("utf-8"),
+        ).hexdigest()
+
+        def _with_meta(record: Dict) -> Dict:
+            enriched = dict(record)
+            enriched.update(
+                {
+                    "fonte_origem": source_label,
+                    "data_ingestao": timestamp,
+                    "payload_hash": payload_hash,
+                },
+            )
+            return enriched
+
+        return {
+            "empenhos": [_with_meta(item) for item in payloads.get("empenhos", [])],
+            "fornecedores": [_with_meta(item) for item in payloads.get("fornecedores", [])],
+            "orgaos": [_with_meta(item) for item in payloads.get("orgaos", [])],
         }
 
     @staticmethod

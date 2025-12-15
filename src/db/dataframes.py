@@ -21,6 +21,9 @@ def build_empenhos_df(payload: Iterable[Mapping]) -> pd.DataFrame:
         "fornecedor_id": "fornecedor_id",
         "unidade_gestora_id": "orgao_id",
         "contrato_id": "contrato_id",
+        "fonte_origem": "fonte_origem",
+        "data_ingestao": "data_ingestao",
+        "payload_hash": "payload_hash",
     }
     df = df.rename(columns={k: v for k, v in column_map.items() if k in df.columns})
 
@@ -44,6 +47,9 @@ def build_fornecedores_df(payload: Iterable[Mapping]) -> pd.DataFrame:
         "tipo_documento": "tipo_documento",
         "municipio": "municipio",
         "uf": "uf",
+        "fonte_origem": "fonte_origem",
+        "data_ingestao": "data_ingestao",
+        "payload_hash": "payload_hash",
     }
 
     df = df.rename(columns={k: v for k, v in column_map.items() if k in df.columns})
@@ -66,6 +72,9 @@ def build_orgaos_df(payload: Iterable[Mapping]) -> pd.DataFrame:
         "sigla": "sigla",
         "municipio": "municipio",
         "uf": "uf",
+        "fonte_origem": "fonte_origem",
+        "data_ingestao": "data_ingestao",
+        "payload_hash": "payload_hash",
     }
 
     df = df.rename(columns={k: v for k, v in column_map.items() if k in df.columns})

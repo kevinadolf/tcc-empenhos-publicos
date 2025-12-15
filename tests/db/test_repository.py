@@ -92,3 +92,15 @@ def test_validate_payloads_invalid(monkeypatch):
     bad_payload = {"empenhos": [{"numero": "123"}]}  # falta ID obrigatório
     with pytest.raises(ValidationError):
         repo.load_graph(payloads=bad_payload)
+
+
+def test_enrich_metadata_in_payloads(sample_payloads):
+    settings = Settings(enable_live_fetch=False)
+    repo = GraphRepository(settings=settings, client=None)
+    graph, graph_data = repo.load_graph(payloads=sample_payloads, source_label="manual")
+
+    assert "fonte_origem" in graph_data.empenhos.columns
+    assert "data_ingestao" in graph_data.empenhos.columns
+    assert "payload_hash" in graph_data.empenhos.columns
+    assert set(graph_data.empenhos["fonte_origem"].unique()) == {"manual"}
+    assert graph_data.empenhos["payload_hash"].notna().all()

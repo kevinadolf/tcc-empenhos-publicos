@@ -191,7 +191,7 @@ class GraphService:
         force_refresh: bool = False,
     ) -> Tuple[SparkGraph, GraphData, Dict]:
         def loader() -> Tuple[SparkGraph, GraphData, Dict]:
-            graph, graph_data = self.repository.load_graph(payloads=SAMPLE_PAYLOAD)
+            graph, graph_data = self.repository.load_graph(payloads=SAMPLE_PAYLOAD, source_label="sample")
             return graph, graph_data, SAMPLE_PAYLOAD
 
         return self._with_cache("sample", loader, force_refresh=force_refresh)
@@ -203,7 +203,7 @@ class GraphService:
     ) -> Tuple[SparkGraph, GraphData, Dict]:
         def loader() -> Tuple[SparkGraph, GraphData, Dict]:
             payloads = generate_random_payloads()
-            graph, graph_data = self.repository.load_graph(payloads=payloads)
+            graph, graph_data = self.repository.load_graph(payloads=payloads, source_label="random")
             return graph, graph_data, payloads
 
         return self._with_cache("random", loader, force_refresh=force_refresh)
@@ -236,7 +236,7 @@ class GraphService:
             else:
                 if progress_callback:
                     progress_callback(85.0, "Construindo grafo com dados do TCE-RJ")
-            graph, graph_data = self.repository.load_graph(payloads=payloads)
+            graph, graph_data = self.repository.load_graph(payloads=payloads, source_label="api")
             if progress_callback:
                 progress_callback(95.0, "Atualizando cache com grafo mais recente")
             return graph, graph_data, payloads
