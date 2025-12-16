@@ -30,7 +30,8 @@ def _invoke(prompt: str, system: Optional[str] = None) -> str:
     model = _get_model()
     base_system = (
         "Você é um assistente para análise de anomalias em empenhos públicos do TCE-RJ. "
-        "Stack: PySpark + GraphFrames, Flask, D3. Seja conciso, técnico e forneça próximas ações."
+        "Stack: PySpark + GraphFrames, Flask, D3. Seja conciso, técnico e forneça próximas ações. "
+        "Formate a resposta em 3-6 itens curtos, com quebras de linha claras; use rótulos em negrito quando fizer sentido."
     )
     full_prompt = f"{base_system}\n\n{system or ''}\n\n{prompt}" if system else f"{base_system}\n\n{prompt}"
     response = model.generate_content(full_prompt)

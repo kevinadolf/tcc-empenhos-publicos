@@ -560,9 +560,14 @@
       target.innerHTML = '<p class="ai-box__status">Clique em "Resumo IA" para gerar um sumário das anomalias.</p>';
       return;
     }
+    const formatted = state.ai.summary
+      .split("\\n")
+      .filter((line) => line.trim())
+      .map((line) => `<p>${line.trim()}</p>`)
+      .join("");
     target.innerHTML = `
       <p class="ai-box__label">Resumo gerado pela IA:</p>
-      <div class="ai-box__content">${state.ai.summary.replace(/\\n/g, "<br/>")}</div>
+      <div class="ai-box__content">${formatted}</div>
     `;
   }
 
@@ -581,7 +586,12 @@
       target.innerHTML = '<p class="ai-box__status">Faça uma pergunta para o assistente.</p>';
       return;
     }
-    target.innerHTML = `<div class="ai-box__content">${state.ai.answer.replace(/\\n/g, "<br/>")}</div>`;
+    const formatted = state.ai.answer
+      .split("\\n")
+      .filter((line) => line.trim())
+      .map((line) => `<p>${line.trim()}</p>`)
+      .join("");
+    target.innerHTML = `<div class="ai-box__content">${formatted}</div>`;
   }
 
   async function requestAISummary() {

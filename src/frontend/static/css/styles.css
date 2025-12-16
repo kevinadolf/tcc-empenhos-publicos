@@ -483,12 +483,21 @@ body {
 
 .ai-assistant__input {
   width: 100%;
+  min-height: 48px;
+  padding: 0.75rem;
 }
 
 .ai-box__body {
   font-size: 0.95rem;
   color: var(--gray-700);
   min-height: 40px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.ai-box__content p {
+  margin: 0.25rem 0;
+  line-height: 1.35;
 }
 
 .ai-box__status {
