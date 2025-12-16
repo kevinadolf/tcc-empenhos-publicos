@@ -12,6 +12,7 @@
     aiQuestion: document.getElementById("ai-question"),
     aiAskBtn: document.getElementById("ai-ask-btn"),
     aiAnswer: document.getElementById("ai-answer"),
+    stats: document.getElementById("anomaly-stats"),
   };
 
   if (!elements.status || !elements.container || !elements.graph) {
@@ -45,6 +46,10 @@
       answering: false,
       answerError: null,
       answer: null,
+    },
+    stats: {
+      total: 0,
+      bySeverity: {},
     },
   };
 
@@ -520,6 +525,7 @@
       const data = await response.json();
       state.data = data;
       state.selection = null;
+      computeStats(data);
       const keys = Object.keys(data || {});
       Array.from(state.collapsed).forEach((key) => {
         if (!keys.includes(key)) {
@@ -560,11 +566,7 @@
       target.innerHTML = '<p class="ai-box__status">Clique em "Resumo IA" para gerar um sumário das anomalias.</p>';
       return;
     }
-    const formatted = state.ai.summary
-      .split("\\n")
-      .filter((line) => line.trim())
-      .map((line) => `<p>${line.trim()}</p>`)
-      .join("");
+    const formatted = renderMarkdown(state.ai.summary);
     target.innerHTML = `
       <p class="ai-box__label">Resumo gerado pela IA:</p>
       <div class="ai-box__content">${formatted}</div>
@@ -586,11 +588,7 @@
       target.innerHTML = '<p class="ai-box__status">Faça uma pergunta para o assistente.</p>';
       return;
     }
-    const formatted = state.ai.answer
-      .split("\\n")
-      .filter((line) => line.trim())
-      .map((line) => `<p>${line.trim()}</p>`)
-      .join("");
+    const formatted = renderMarkdown(state.ai.answer);
     target.innerHTML = `<div class="ai-box__content">${formatted}</div>`;
   }
 
@@ -667,5 +665,60 @@
   }
   if (elements.aiAskBtn) {
     elements.aiAskBtn.addEventListener("click", requestAIAssistant);
+  }
+
+  function renderMarkdown(text) {
+    if (!text) return "";
+    let html = text;
+    html = html.replace(/^###\\s+(.*)$/gm, "<h4>$1</h4>");
+    html = html.replace(/^##\\s+(.*)$/gm, "<h3>$1</h3>");
+    html = html.replace(/^#\\s+(.*)$/gm, "<h2>$1</h2>");
+    html = html.replace(/\\*\\*(.*?)\\*\\*/g, "<strong>$1</strong>");
+    const lines = html.split(/\\n+/).map((line) => line.trim()).filter(Boolean);
+    const items = [];
+    const output = [];
+    lines.forEach((line) => {
+      if (/^[-*]\\s+/.test(line)) {
+        items.push(line.replace(/^[-*]\\s+/, ""));
+      } else {
+        if (items.length) {
+          output.push("<ul>" + items.map((it) => `<li>${it}</li>`).join("") + "</ul>");
+          items.length = 0;
+        }
+        output.push(`<p>${line}</p>`);
+      }
+    });
+    if (items.length) {
+      output.push("<ul>" + items.map((it) => `<li>${it}</li>`).join("") + "</ul>");
+    }
+    return output.join("");
+  }
+
+  function computeStats(data) {
+    const stats = { total: 0, bySeverity: {} };
+    Object.values(data || {}).forEach((items) => {
+      (items || []).forEach((item) => {
+        stats.total += 1;
+        const sev = (item.severity || "media").toLowerCase();
+        stats.bySeverity[sev] = (stats.bySeverity[sev] || 0) + 1;
+      });
+    });
+    state.stats = stats;
+    renderStats();
+  }
+
+  function renderStats() {
+    const target = elements.stats;
+    if (!target) return;
+    const total = state.stats.total || 0;
+    const sev = state.stats.bySeverity || {};
+    const card = (label, value, className = "") =>
+      `<div class="stat-card ${className}"><p class="stat-label">${label}</p><p class="stat-value">${value}</p></div>`;
+    target.innerHTML = `
+      ${card("Total de anomalias", total, "stat-card--primary")}
+      ${card("Severidade alta", sev.alta || 0, "stat-card--alert")}
+      ${card("Severidade média", sev.media || 0, "stat-card--warn")}
+      ${card("Severidade baixa", sev.baixa || 0, "stat-card--info")}
+    `;
   }
 })();

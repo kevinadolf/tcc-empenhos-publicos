@@ -29,12 +29,13 @@
               <h3>Assistente</h3>
             </div>
             <div class="ai-assistant">
-              <input id="ai-question" class="input ai-assistant__input" type="text" placeholder="Pergunte algo: o que é empenho? como priorizar anomalias?" />
+              <textarea id="ai-question" class="input ai-assistant__input" rows="3" placeholder="Pergunte algo: o que é empenho? como priorizar anomalias?"></textarea>
               <button id="ai-ask-btn" class="button button--secondary button--xs" type="button">Perguntar</button>
               <div id="ai-answer" class="ai-box__body"></div>
             </div>
           </div>
         </div>
+        <div id="anomaly-stats" class="stat-grid"></div>
         <div id="anomaly-content" class="anomaly-list" hidden></div>
       </div>
       <aside class="anomaly-visualizer" id="anomaly-visualizer">
