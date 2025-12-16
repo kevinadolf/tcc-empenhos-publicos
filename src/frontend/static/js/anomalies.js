@@ -682,23 +682,26 @@
     };
 
     lines.forEach((line) => {
-      if (/^###\\s+/.test(line)) {
-        flushList();
-        output.push(`<h4>${line.replace(/^###\\s+/, "")}</h4>`);
+      if (/^#/.test(line) && /resumo/i.test(line)) {
         return;
       }
-      if (/^##\\s+/.test(line)) {
+      if (/^###\\s*/.test(line)) {
         flushList();
-        output.push(`<h3>${line.replace(/^##\\s+/, "")}</h3>`);
+        output.push(`<h4>${line.replace(/^###\\s*/, "")}</h4>`);
         return;
       }
-      if (/^#\\s+/.test(line)) {
+      if (/^##\\s*/.test(line)) {
         flushList();
-        output.push(`<h2>${line.replace(/^#\\s+/, "")}</h2>`);
+        output.push(`<h3>${line.replace(/^##\\s*/, "")}</h3>`);
         return;
       }
-      if (/^[-*•]\\s+/.test(line)) {
-        listBuffer.push(line.replace(/^[-*•]\\s+/, ""));
+      if (/^#\\s*/.test(line)) {
+        flushList();
+        output.push(`<h2>${line.replace(/^#\\s*/, "")}</h2>`);
+        return;
+      }
+      if (/^[-*•]\\s*/.test(line)) {
+        listBuffer.push(line.replace(/^[-*•]\\s*/, ""));
         return;
       }
       flushList();

@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from typing import Dict, Iterable, List, Tuple
 
-SeverityWeight = {"baixa": 0.2, "media": 0.6, "alta": 1.0}
+SeverityWeight = {"baixa": 0.3, "media": 0.7, "alta": 1.2}
+
+DETECTOR_WEIGHT = {
+    "centralidade_fornecedores": 1.0,
+    "centralidade_orgaos": 1.0,
+    "alta_entropia_fornecedores": 0.9,
+    "comunidades_isoladas": 0.8,
+}
 
 
 def _severity_weight(severity: str) -> float:
@@ -24,7 +31,14 @@ def compute_node_risk(anomalies: Dict[str, List[Dict]]) -> Dict[str, Dict[str, f
         for item in items:
             severity = item.get("severity", "media")
             weight = _severity_weight(severity)
-            score = float(item.get("score") or 0.0) * weight
+            detector_weight = DETECTOR_WEIGHT.get(detector, 1.0)
+            raw_score = item.get("score")
+            try:
+                numeric_score = float(raw_score) if raw_score is not None else 1.0
+            except (TypeError, ValueError):
+                numeric_score = 1.0
+            numeric_score = max(0.0, numeric_score)
+            score = numeric_score * weight * detector_weight
             context = item.get("context") or {}
             node_ids: List[str] = []
             if context.get("node_id"):
@@ -43,9 +57,11 @@ def compute_node_risk(anomalies: Dict[str, List[Dict]]) -> Dict[str, Dict[str, f
     for node_id, scores in node_scores.items():
         if not scores:
             continue
+        total = sum(scores)
+        signals = max(len(scores), 1)
         aggregated[node_id] = {
-            "score": float(sum(scores) / max(len(scores), 1)),
-            "signals": len(scores),
+            "score": float(total / signals),
+            "signals": signals,
         }
 
     return aggregated
