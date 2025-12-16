@@ -669,29 +669,50 @@
 
   function renderMarkdown(text) {
     if (!text) return "";
-    let html = text;
-    html = html.replace(/^###\\s+(.*)$/gm, "<h4>$1</h4>");
-    html = html.replace(/^##\\s+(.*)$/gm, "<h3>$1</h3>");
-    html = html.replace(/^#\\s+(.*)$/gm, "<h2>$1</h2>");
-    html = html.replace(/\\*\\*(.*?)\\*\\*/g, "<strong>$1</strong>");
-    const lines = html.split(/\\n+/).map((line) => line.trim()).filter(Boolean);
-    const items = [];
+    const lines = text
+      .split("\\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
     const output = [];
-    lines.forEach((line) => {
-      if (/^[-*]\\s+/.test(line)) {
-        items.push(line.replace(/^[-*]\\s+/, ""));
-      } else {
-        if (items.length) {
-          output.push("<ul>" + items.map((it) => `<li>${it}</li>`).join("") + "</ul>");
-          items.length = 0;
-        }
-        output.push(`<p>${line}</p>`);
+    let listBuffer = [];
+
+    const flushList = () => {
+      if (listBuffer.length) {
+        output.push("<ul>" + listBuffer.map((it) => `<li>${it}</li>`).join("") + "</ul>");
+        listBuffer = [];
       }
+    };
+
+    lines.forEach((line) => {
+      if (/^###\\s+/.test(line)) {
+        flushList();
+        output.push(`<h4>${line.replace(/^###\\s+/, "")}</h4>`);
+        return;
+      }
+      if (/^##\\s+/.test(line)) {
+        flushList();
+        output.push(`<h3>${line.replace(/^##\\s+/, "")}</h3>`);
+        return;
+      }
+      if (/^#\\s+/.test(line)) {
+        flushList();
+        output.push(`<h2>${line.replace(/^#\\s+/, "")}</h2>`);
+        return;
+      }
+      if (/^[-*•]\\s+/.test(line)) {
+        listBuffer.push(line.replace(/^[-*•]\\s+/, ""));
+        return;
+      }
+      flushList();
+      output.push(`<p>${line}</p>`);
     });
-    if (items.length) {
-      output.push("<ul>" + items.map((it) => `<li>${it}</li>`).join("") + "</ul>");
-    }
-    return output.join("");
+
+    flushList();
+
+    return output
+      .join("")
+      .replace(/\\*\\*(.*?)\\*\\*/g, "<strong>$1</strong>");
   }
 
   function computeStats(data) {
