@@ -669,10 +669,7 @@
 
   function renderMarkdown(text) {
     if (!text) return "";
-    const lines = text
-      .split("\\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
+    const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
 
     const output = [];
     let listBuffer = [];
@@ -710,9 +707,11 @@
 
     flushList();
 
-    return output
-      .join("")
-      .replace(/\\*\\*(.*?)\\*\\*/g, "<strong>$1</strong>");
+    const html = output.join("");
+    return html
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/<p>\s*<ul>/g, "<ul>")
+      .replace(/<\/ul>\s*<\/p>/g, "</ul>");
   }
 
   function computeStats(data) {
