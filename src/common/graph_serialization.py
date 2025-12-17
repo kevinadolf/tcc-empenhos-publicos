@@ -7,7 +7,6 @@ import math
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Tuple
 
-from src.common.masking import mask_document
 from src.common.spark_graph import SparkGraph
 
 
@@ -57,8 +56,6 @@ def _collect_nodes(graph: SparkGraph) -> List[Dict[str, Any]]:
                 data["valor"] = numeric
         if data.get("data") is not None:
             data["data"] = str(data["data"])
-        if data.get("documento"):
-            data["documento"] = mask_document(str(data["documento"]))
         nodes.append(
             {
                 "id": node_id,

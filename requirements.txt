@@ -13,3 +13,4 @@ graphframes
 pydantic==2.6.4
 prometheus-client==0.20.0
 google-generativeai==0.3.2
+pandas

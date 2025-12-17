@@ -24,6 +24,7 @@ from src.db.dataframes import (
 from src.db.graph_builder import build_heterogeneous_graph
 from src.db.sources.tce_client import TCEClientConfig, TCEDataClient
 from src.db.schemas import EmpenhoPayload, FornecedorPayload, OrgaoPayload
+from src.db.suppliers_enrichment import CNPJEnricher
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,7 @@ class GraphRepository:
             max_pages=self.settings.api_max_pages,
         )
         self.client = client or TCEDataClient(config=client_config)
+        self.cnpj_enricher = CNPJEnricher.from_parquet()
 
     def fetch_payloads(
         self,
@@ -126,6 +128,7 @@ class GraphRepository:
         validated = self._validate_payloads(payloads)
         cleaned = self._quality_checks(validated)
         enriched = self._enrich_payload_metadata(cleaned, source_label)
+        enriched["fornecedores"] = self.cnpj_enricher.enrich_fornecedores(enriched["fornecedores"])
         graph_data = self.build_graph_from_payloads(enriched)
         graph = build_heterogeneous_graph(
             graph_data.empenhos,
